@@ -45,6 +45,13 @@ const P = {
   link:'M10 13a5 5 0 007 0l3-3a5 5 0 00-7-7l-1.5 1.5M14 11a5 5 0 00-7 0l-3 3a5 5 0 007 7l1.5-1.5',
   calendar:'M3 8h18M7 3v3M17 3v3M5 5h14a2 2 0 012 2v12a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2z',
 
+  // --- Icônes ajoutées pour les modules v2 ---
+  // Galerie photos
+  image:'M3 3h18a1 1 0 011 1v16a1 1 0 01-1 1H3a1 1 0 01-1-1V4a1 1 0 011-1zM8.5 10a1.5 1.5 0 100-3 1.5 1.5 0 000 3zM21 15l-5-5L5 21',
+  // Rappels désactivés
+  'bell-off':'M8.56 2.9A7 7 0 0119 9v4m0 0l2 4H3l2-4m7 4v1a3 3 0 006 0v-1M1 1l22 22',
+  // Hors-ligne
+  'wifi-off':'M1 1l22 22M16.72 11.06A10.94 10.94 0 0119 12.55M5 12.55a10.94 10.94 0 015.17-2.39M10.71 5.05A16 16 0 0122.54 9M1.42 9a15.91 15.91 0 014.7-2.88M8.53 16.11a6 6 0 016.95 0M12 20h.01',
   // --- Icônes ajoutées pour le module Découverte v2 ---
   // Flèche retour (navigation détail → liste)
   'arrow-left':'M19 12H5M12 5l-7 7 7 7',
