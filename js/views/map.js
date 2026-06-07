@@ -28,12 +28,14 @@ export function MapView() {
 
   el.innerHTML = `
     <div class="section-head" style="margin-top:0"><h3>Carte — ${esc(trip?.title || '')}</h3><div class="spacer"></div>
+      <button class="btn ghost offline-btn">${icon('wifi-off')} Hors-ligne</button>
       <button class="btn ghost gpx">${icon('upload')} Import GPX</button>
       <button class="btn primary add">${icon('plus')} Point</button></div>
     <div class="map-layers">
       ${LAYERS.map((l) => `<button class="tag sage filter on" data-layer="${l.key}">${l.emoji} ${l.label}</button>`).join('')}
     </div>
     <div id="geo-status" class="geo-status" hidden></div>
+    <div id="offline-status" class="geo-status" hidden></div>
     <div id="map"></div>
     <div id="tofix"></div>
     <input type="file" id="gpx-file" accept=".gpx" hidden>`;
@@ -152,6 +154,59 @@ export function MapView() {
 
     drawAll(); renderToFix();
     resolveMissing();
+
+    // ── Cache hors-ligne des tuiles ────────────────────────────
+    el.querySelector('.offline-btn').onclick = async () => {
+      if (!trip || !hasCoords(trip)) {
+        toast('Renseignez les coordonnées du voyage dans l\'onglet Voyages', 'warn');
+        return;
+      }
+      const offStatus = el.querySelector('#offline-status');
+      offStatus.hidden = false;
+      offStatus.textContent = 'Mise en cache des tuiles…';
+
+      // Générer les tuiles pour la zone du voyage (zoom 8 à 12)
+      const lat = trip.lat, lng = trip.lng;
+      const tiles = [];
+      for (let z = 8; z <= 12; z++) {
+        // Convertir lat/lng en indices de tuiles
+        const n  = Math.pow(2, z);
+        const xC = Math.floor((lng + 180) / 360 * n);
+        const yC = Math.floor((1 - Math.log(Math.tan(lat * Math.PI/180) + 1/Math.cos(lat * Math.PI/180)) / Math.PI) / 2 * n);
+        // Zone de ±2 tuiles autour du centre (plus large aux zooms faibles)
+        const r  = z <= 9 ? 1 : z <= 11 ? 2 : 3;
+        for (let dx = -r; dx <= r; dx++) {
+          for (let dy = -r; dy <= r; dy++) {
+            tiles.push({ z, x: xC + dx, y: yC + dy });
+          }
+        }
+      }
+
+      // Télécharger et cacher via fetch
+      let done = 0, errors = 0;
+      const cache = await caches.open('cvs-tiles-v1').catch(() => null);
+      if (!cache) { offStatus.textContent = 'Cache non disponible dans ce navigateur'; return; }
+
+      for (const t of tiles) {
+        const url = `https://tile.openstreetmap.org/${t.z}/${t.x}/${t.y}.png`;
+        try {
+          const cached = await cache.match(url);
+          if (!cached) {
+            const res = await fetch(url, { mode: 'cors' });
+            if (res.ok) await cache.put(url, res);
+          }
+          done++;
+        } catch { errors++; }
+        if ((done + errors) % 5 === 0) {
+          offStatus.textContent = `Mise en cache… ${done}/${tiles.length} tuiles`;
+        }
+        // Pause pour respecter le débit OSM
+        await new Promise(r => setTimeout(r, 50));
+      }
+      offStatus.textContent = `✅ ${done} tuiles mises en cache — carte disponible hors-ligne`;
+      setTimeout(() => { offStatus.hidden = true; }, 4000);
+      toast(`Carte hors-ligne prête — ${done} tuiles`);
+    };
 
     // Filtres de couches
     el.querySelectorAll('.filter').forEach((b) => b.onclick = () => {
