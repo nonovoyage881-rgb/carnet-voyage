@@ -1279,3 +1279,107 @@ a.docrow:hover { border-color: var(--sage-deep); }
 }
 .idea-act-link:hover { background: color-mix(in srgb, var(--sage-soft) 80%, var(--sage)); }
 .idea-act-link svg { width: 14px; height: 14px; flex-shrink: 0; }
+
+/* ── Galerie photos ──────────────────────────────────────────── */
+.gallery-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 10px;
+  margin-top: 4px;
+}
+
+.gallery-item {
+  position: relative;
+  border-radius: var(--r);
+  overflow: hidden;
+  cursor: pointer;
+  background: var(--surface-2);
+  aspect-ratio: 1;
+  border: 1px solid var(--border);
+  transition: transform .18s var(--ease), box-shadow .18s;
+}
+.gallery-item:hover { transform: scale(1.03); box-shadow: var(--shadow-sm); }
+
+.gallery-item img {
+  width: 100%; height: 100%;
+  object-fit: cover; display: block;
+}
+
+.gallery-item-label {
+  position: absolute; bottom: 0; left: 0; right: 0;
+  background: rgba(30,20,10,.65);
+  color: #fff;
+  font-size: .68rem;
+  padding: 5px 8px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  opacity: 0;
+  transition: opacity .18s;
+}
+.gallery-item:hover .gallery-item-label { opacity: 1; }
+
+/* Lightbox */
+.gallery-lightbox {
+  position: fixed; inset: 0; z-index: 400;
+  background: rgba(10,8,5,.92);
+  display: flex; align-items: center; justify-content: center;
+  gap: 16px;
+  padding: 20px;
+  animation: fade .2s;
+}
+
+.gallery-lb-img-wrap {
+  flex: 1; max-width: 860px;
+  display: flex; flex-direction: column; align-items: center; gap: 12px;
+}
+
+.gallery-lb-img-wrap img {
+  max-width: 100%; max-height: 80dvh;
+  border-radius: var(--r-lg);
+  object-fit: contain;
+  box-shadow: 0 8px 40px rgba(0,0,0,.5);
+}
+
+.gallery-lb-caption {
+  color: rgba(255,255,255,.7);
+  font-size: .85rem;
+  text-align: center;
+}
+
+.gallery-lb-close {
+  position: absolute; top: 16px; right: 16px;
+  background: rgba(255,255,255,.12);
+  border: none; color: #fff;
+  width: 36px; height: 36px;
+  border-radius: 50%;
+  display: grid; place-items: center;
+  cursor: pointer; font-size: 1.1rem;
+  transition: background .15s;
+}
+.gallery-lb-close:hover { background: rgba(255,255,255,.25); }
+.gallery-lb-close svg  { width: 18px; height: 18px; }
+
+.gallery-lb-prev,
+.gallery-lb-next {
+  background: rgba(255,255,255,.12);
+  border: none; color: #fff;
+  width: 44px; height: 44px;
+  border-radius: 50%;
+  font-size: 1.6rem; line-height: 1;
+  cursor: pointer; flex-shrink: 0;
+  transition: background .15s;
+}
+.gallery-lb-prev:hover,
+.gallery-lb-next:hover { background: rgba(255,255,255,.25); }
+
+@media (max-width: 600px) {
+  .gallery-grid { grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); }
+  .gallery-lb-prev, .gallery-lb-next { display: none; }
+}
+
+/* ── Bandeau rappels ─────────────────────────────────────────── */
+@keyframes slideDown {
+  from { transform: translateY(-100%); opacity: 0; }
+  to   { transform: none; opacity: 1; }
+}
