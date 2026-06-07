@@ -275,7 +275,7 @@ export function Discover(nav) {
       <article class="idea-card" data-id="${i.id}" role="button" tabindex="0"
                aria-label="Ouvrir ${esc(i.title)}">
         <div class="idea-card-cover" ${coverAttr}>
-          ${!(i.photos && i.photos[0]) ? `<span class="idea-card-emoji">${esc(i.emoji || "🗺️")}</span>` : ""}
+
           ${i.season ? `<span class="idea-card-season">${esc(i.season)}</span>` : ''}
           ${hasDog ? `<span class="idea-card-dog ${DOG_CLASS[i.dogPolicy] || ''}">${DOG_LABEL[i.dogPolicy] || ''}</span>` : ''}
           <button class="idea-card-fav${i.favorite ? ' idea-card-fav--on' : ''}"
@@ -340,7 +340,7 @@ export function Discover(nav) {
 
       <!-- ── Hero ── -->
       <div class="idea-hero">
-        <div class="idea-hero-emoji-bg" ${coverAttr}>${!(i.photos && i.photos[0]) ? esc(i.emoji || '🗺️') : ''}</div>
+
         <div class="idea-hero-overlay"></div>
         <div class="idea-hero-content">
           <h1 class="idea-hero-title">
@@ -595,10 +595,7 @@ export function Discover(nav) {
             <label>Région / destination</label>
             <input name="destination" value="${esc(i?.destination || '')}" placeholder="Val de Loire, France">
           </div>
-          <div class="field" style="flex:.35">
-            <label>Emoji</label>
-            <input name="emoji" value="${esc(i?.emoji || '🗺️')}" placeholder="🗺️">
-          </div>
+
         </div>
         <div class="row">
           <div class="field">
@@ -667,7 +664,7 @@ export function Discover(nav) {
       const rec = {
         title,
         destination: g('destination'),
-        emoji:       g('emoji') || '🗺️',
+
         budget:      +g('budget') || 0,
         durCat:      g('durCat'),
         budgetCat:   g('budgetCat'),
