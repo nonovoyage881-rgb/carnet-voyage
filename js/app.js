@@ -7,6 +7,8 @@ import { media } from './lib/media.js';
 
 import { Dashboard }    from './views/dashboard.js';
 import { Discover }     from './views/discover.js';
+import { Gallery }      from './views/gallery.js';
+import { checkReminders } from './lib/reminders.js';
 import { Trips }        from './views/trips.js';
 import { Budget }       from './views/budget.js';
 import { MapView }      from './views/map.js';
@@ -28,6 +30,7 @@ import {
 const ROUTES = {
   dashboard:    { label: 'Tableau de bord', icon: 'home',     view: Dashboard,    group: null },
   discover:     { label: 'Découverte',      icon: 'compass',  view: Discover,     group: 'Préparer' },
+  gallery:      { label: 'Galerie photos',  icon: 'image',    view: Gallery,      group: 'Préparer' },
   trips:        { label: 'Voyages',         icon: 'suitcase', view: Trips,        group: 'Préparer' },
   itineraries:  { label: 'Itinéraires',     icon: 'route',    view: Itineraries,  group: 'Préparer' },
   reservations: { label: 'Réservations',    icon: 'ticket',   view: Reservations, group: 'Préparer' },
@@ -293,8 +296,10 @@ function renderLogin(errMsg) {
 //  Démarrage
 // ---------------------------------------------------------------------
 function afterAuthReady() {
-  if (store.setting('me')) nav(location.hash?.slice(1) || 'dashboard');
-  else renderAuth();
+  if (store.setting('me')) {
+    nav(location.hash?.slice(1) || 'dashboard');
+    checkReminders(nav);   // rappels à l'ouverture
+  } else renderAuth();
 }
 
 let syncStarted = false;
