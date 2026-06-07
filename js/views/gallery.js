@@ -120,11 +120,13 @@ export function Gallery() {
     }
 
     el.querySelector('#lb-close').onclick = closeLightbox;
-    el.querySelector('#lb-prev').onclick  = () => showSlide(current - 1);
-    el.querySelector('#lb-next').onclick  = () => showSlide(current + 1);
+    el.querySelector('#lb-prev').onclick  = (e) => { e.stopPropagation(); showSlide(current - 1); };
+    el.querySelector('#lb-next').onclick  = (e) => { e.stopPropagation(); showSlide(current + 1); };
 
-    // Fermer en cliquant hors de l'image
-    lb.onclick = (e) => { if (e.target === lb) closeLightbox(); };
+    // Fermer en cliquant sur le fond OU sur la photo
+    lb.onclick = (e) => {
+      if (e.target === lb || e.target === lbImg) closeLightbox();
+    };
 
     // Navigation clavier
     document.addEventListener('keydown', function kbNav(e) {
