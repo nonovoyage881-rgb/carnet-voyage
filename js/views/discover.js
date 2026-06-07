@@ -275,7 +275,7 @@ export function Discover(nav) {
       <article class="idea-card" data-id="${i.id}" role="button" tabindex="0"
                aria-label="Ouvrir ${esc(i.title)}">
         <div class="idea-card-cover" ${coverAttr}>
-          <span class="idea-card-emoji">${esc(i.emoji || '🗺️')}</span>
+          ${!(i.photos && i.photos[0]) ? `<span class="idea-card-emoji">${esc(i.emoji || "🗺️")}</span>` : ""}
           ${i.season ? `<span class="idea-card-season">${esc(i.season)}</span>` : ''}
           ${hasDog ? `<span class="idea-card-dog ${DOG_CLASS[i.dogPolicy] || ''}">${DOG_LABEL[i.dogPolicy] || ''}</span>` : ''}
           <button class="idea-card-fav${i.favorite ? ' idea-card-fav--on' : ''}"
@@ -340,7 +340,7 @@ export function Discover(nav) {
 
       <!-- ── Hero ── -->
       <div class="idea-hero">
-        <div class="idea-hero-emoji-bg" ${coverAttr}>${esc(i.emoji || '🗺️')}</div>
+        <div class="idea-hero-emoji-bg" ${coverAttr}>${!(i.photos && i.photos[0]) ? esc(i.emoji || '🗺️') : ''}</div>
         <div class="idea-hero-overlay"></div>
         <div class="idea-hero-content">
           <h1 class="idea-hero-title">
