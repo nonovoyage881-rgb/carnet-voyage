@@ -399,13 +399,21 @@ export function Discover(nav) {
           </div>
         </div>` : ''}
 
-        <!-- Activités (champ existant v1 — liste de strings) -->
+        <!-- Activités (champ existant v1 — liste jolie avec liens cliquables) -->
         ${i.activities && i.activities.length && !(i.programme && i.programme.length) ? `
         <div class="idea-section">
           <div class="idea-section-head">${icon('star')} Activités à faire</div>
-          <ul class="mini">
-            ${i.activities.map(a => `<li>${esc(a)}</li>`).join('')}
-          </ul>
+          <div class="idea-act-list">
+            ${i.activities.map(a => {
+              const isLink = /^https?:\/\//.test(a.trim());
+              if (isLink) {
+                return `<a class="idea-act-link" href="${esc(a)}" target="_blank" rel="noopener">
+                  ${icon('globe')} Voir le site
+                </a>`;
+              }
+              return `<div class="idea-act-item">${icon('star')} ${esc(a)}</div>`;
+            }).join('')}
+          </div>
         </div>` : ''}
 
         <!-- Programme / timeline (nouveau champ optionnel) -->
@@ -454,13 +462,21 @@ export function Discover(nav) {
           </p>
         </div>` : ''}
 
-        <!-- Campings à proximité (champ existant v1) -->
+        <!-- Campings à proximité (champ existant v1 — liens cliquables) -->
         ${i.campings && i.campings.length ? `
         <div class="idea-section">
           <div class="idea-section-head">${icon('tent')} Campings à proximité</div>
-          <ul class="mini">
-            ${i.campings.map(c => `<li>${esc(c)}</li>`).join('')}
-          </ul>
+          <div class="idea-act-list">
+            ${i.campings.map(c => {
+              const isLink = /^https?:\/\//.test(c.trim());
+              if (isLink) {
+                return `<a class="idea-act-link" href="${esc(c)}" target="_blank" rel="noopener">
+                  ${icon('globe')} Voir le camping
+                </a>`;
+              }
+              return `<div class="idea-act-item">${icon('tent')} ${esc(c)}</div>`;
+            }).join('')}
+          </div>
         </div>` : ''}
 
         <!-- Infos pratiques (nouveau champ optionnel) -->
@@ -645,6 +661,21 @@ export function Discover(nav) {
         <div class="field"><label>Photos du lieu</label><div id="ph"></div></div>
         <div class="field"><label>Activités à faire</label><div id="act"></div></div>
         <div class="field"><label>Campings à proximité</label><div id="camp"></div></div>
+
+        <div class="field"><label>💰 Budget détaillé (optionnel)</label>
+          <div style="background:var(--surface-2);border-radius:var(--r);padding:14px;display:flex;flex-direction:column;gap:10px">
+            <div class="row" style="gap:10px">
+              <div class="field" style="margin:0"><label>Hébergement (€)</label><input name="bud_heb" type="number" placeholder="130" value="${i?.budgetDetail?.mid?.heb || ''}"></div>
+              <div class="field" style="margin:0"><label>Entrées (€)</label><input name="bud_ent" type="number" placeholder="50" value="${i?.budgetDetail?.mid?.ent || ''}"></div>
+            </div>
+            <div class="row" style="gap:10px">
+              <div class="field" style="margin:0"><label>Carburant (€)</label><input name="bud_car" type="number" placeholder="40" value="${i?.budgetDetail?.mid?.car || ''}"></div>
+              <div class="field" style="margin:0"><label>Repas (€)</label><input name="bud_rep" type="number" placeholder="90" value="${i?.budgetDetail?.mid?.rep || ''}"></div>
+            </div>
+            <p style="color:var(--ink-faint);font-size:.78rem;margin:0">Laissez vide si vous ne souhaitez pas de budget détaillé.</p>
+          </div>
+        </div>
+
         <div class="field">
           <label>Conseils &amp; notes personnelles</label>
           <textarea name="notes" placeholder="Bonnes adresses, astuces…">${esc(i?.notes || '')}</textarea>
@@ -661,11 +692,20 @@ export function Discover(nav) {
       if (!title) { toast('Indiquez un titre', 'warn'); return false; }
 
       // Champs v1 conservés + nouveaux champs optionnels
+      // Budget détaillé : construire l'objet si au moins un champ est renseigné
+      const budHeb = +g('bud_heb') || 0;
+      const budEnt = +g('bud_ent') || 0;
+      const budCar = +g('bud_car') || 0;
+      const budRep = +g('bud_rep') || 0;
+      const budTotal = budHeb + budEnt + budCar + budRep;
+      const budgetDetail = budTotal > 0 ? {
+        mid: { heb: budHeb, ent: budEnt, car: budCar, rep: budRep, total: budTotal }
+      } : null;
+
       const rec = {
         title,
         destination: g('destination'),
-
-        budget:      +g('budget') || 0,
+        budget:      budTotal > 0 ? budTotal : (+g('budget') || 0),
         durCat:      g('durCat'),
         budgetCat:   g('budgetCat'),
         distance:    g('distance'),
@@ -676,6 +716,7 @@ export function Discover(nav) {
         photos,
         activities,
         campings,
+        budgetDetail,
       };
 
       if (id) store.update('ideas', id, rec);
