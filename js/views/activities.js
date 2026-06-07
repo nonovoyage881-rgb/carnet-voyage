@@ -25,6 +25,7 @@ function photoUploader(container, photos) {
   };
   draw();
 }
+
 export function Activities() {
   const el = document.createElement('div');
   let q = '', fStatus = '', fCat = '';
