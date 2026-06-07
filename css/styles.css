@@ -1244,3 +1244,38 @@ a.docrow:hover { border-color: var(--sage-deep); }
   .idea-detail-nav   { padding: 10px 12px; }
   .idea-detail-acts  { gap: 4px; }
 }
+
+/* ── Activités & campings — liste jolie avec liens cliquables ── */
+.idea-act-list {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+
+.idea-act-item {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 9px 13px;
+  background: var(--surface-2);
+  border-radius: var(--r-sm);
+  font-size: .88rem;
+  color: var(--ink);
+}
+.idea-act-item svg { width: 14px; height: 14px; color: var(--sage-deep); flex-shrink: 0; }
+
+.idea-act-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 14px;
+  background: var(--sage-soft);
+  color: var(--sage-deep);
+  border-radius: var(--r-sm);
+  font-size: .88rem;
+  font-weight: 700;
+  text-decoration: none;
+  transition: background .15s;
+}
+.idea-act-link:hover { background: color-mix(in srgb, var(--sage-soft) 80%, var(--sage)); }
+.idea-act-link svg { width: 14px; height: 14px; flex-shrink: 0; }
