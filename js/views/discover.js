@@ -231,7 +231,8 @@ export function Discover(nav) {
       if (card) showDetail(card.dataset.id);
     });
 
-    host.querySelector('#idea-reset-filter')?.onclick = () => { activeFilter = 'all'; paintIdeas(host); };
+    const resetBtn = host.querySelector('#idea-reset-filter');
+    if (resetBtn) resetBtn.onclick = () => { activeFilter = 'all'; paintIdeas(host); };
 
     media.hydrate(host);
   }
@@ -521,7 +522,8 @@ export function Discover(nav) {
     };
 
     // Onglets budget
-    panel.querySelector('#idea-btabs')?.addEventListener('click', e => {
+    const btabs = panel.querySelector('#idea-btabs');
+    if (btabs) btabs.addEventListener('click', e => {
       const btn = e.target.closest('[data-btab]'); if (!btn) return;
       activeBudgetTab = btn.dataset.btab;
       panel.querySelectorAll('.idea-btab').forEach(b => b.classList.toggle('idea-btab--on', b.dataset.btab === activeBudgetTab));
@@ -533,7 +535,8 @@ export function Discover(nav) {
     });
 
     // Accordéons
-    panel.querySelector('#idea-acc')?.addEventListener('click', e => {
+    const acc = panel.querySelector('#idea-acc');
+    if (acc) acc.addEventListener('click', e => {
       const hdr = e.target.closest('.idea-acc-header'); if (!hdr) return;
       hdr.closest('.idea-acc-item').classList.toggle('idea-acc-item--open');
     });
