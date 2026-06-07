@@ -6,11 +6,36 @@ const ROLES = ['Administrateur','Parent','Enfant'];
 
 export function Settings(nav, applyTheme) {
   const el = document.createElement('div');
+
+  function daysUntil(str) {
+    if (!str) return null;
+    const d = new Date(str); if (isNaN(d)) return null;
+    d.setHours(0,0,0,0);
+    const t = new Date(); t.setHours(0,0,0,0);
+    return Math.round((d - t) / 86400000);
+  }
+
+  function buildReminderPreview() {
+    const lines = [];
+    store.list('trips').filter(t => t.status === 'futur').forEach(t => {
+      const d = daysUntil(t.start);
+      if (d !== null && d >= 0 && d <= 9)
+        lines.push(`<div style="font-size:.85rem;color:var(--ink-soft)">🧳 <b>${esc(t.title)}</b> — départ dans ${d} jour${d>1?'s':''}</div>`);
+    });
+    store.list('reservations').forEach(r => {
+      const d = daysUntil(r.arrDate);
+      if (d !== null && d >= 0 && d <= 4)
+        lines.push(`<div style="font-size:.85rem;color:var(--ink-soft)">🎫 <b>${esc(r.name||r.type)}</b> — dans ${d} jour${d>1?'s':''}</div>`);
+    });
+    return lines.length ? lines.join('') : '<div style="font-size:.85rem;color:var(--ink-faint)">Aucun événement proche pour l\'instant.</div>';
+  }
+
   function render() {
     const members = store.list('members');
     const me = store.setting('me') || members[0]?.name;
     const theme = store.setting('theme') || 'light';
     const family = store.setting('family') || 'Ma famille';
+    const remindersOn = !!store.setting('remindersEnabled');
 
     el.innerHTML = `
       <div class="section-head"><h3>⚙️ Paramètres</h3></div>
@@ -23,6 +48,31 @@ export function Settings(nav, applyTheme) {
           <div class="field"><label>Thème</label>
             <select id="theme"><option value="light" ${theme==='light'?'selected':''}>☀️ Clair</option><option value="dark" ${theme==='dark'?'selected':''}>🌙 Sombre</option></select></div>
         </div>
+      </div>
+
+      <div class="section-head"><h3>🔔 Rappels à l'ouverture</h3></div>
+      <div class="card">
+        <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap">
+          <div style="flex:1;min-width:200px">
+            <b style="display:block;margin-bottom:4px">Rappels intelligents</b>
+            <p style="color:var(--ink-soft);font-size:.85rem;margin:0">
+              À chaque ouverture, l'app vérifie vos dates et affiche un bandeau
+              si un départ ou une réservation approche (J-7, J-1, jour J).
+              Les rappels s'affichent uniquement quand vous ouvrez l'application.
+            </p>
+          </div>
+          <label style="display:flex;align-items:center;gap:10px;cursor:pointer;flex-shrink:0">
+            <input type="checkbox" id="rem-toggle" ${remindersOn?'checked':''} style="width:20px;height:20px;accent-color:var(--sage-deep)">
+            <b>${remindersOn ? 'Activés' : 'Désactivés'}</b>
+          </label>
+        </div>
+        ${remindersOn ? `
+        <div style="margin-top:14px;padding-top:14px;border-top:1px solid var(--border)">
+          <b style="font-size:.82rem;color:var(--ink-faint);text-transform:uppercase;letter-spacing:.08em">Rappels programmés</b>
+          <div style="margin-top:8px;display:flex;flex-direction:column;gap:6px">
+            ${buildReminderPreview()}
+          </div>
+        </div>` : ''}
       </div>
 
       <div class="section-head"><h3>👨‍👩‍👧‍👦 Membres & rôles</h3><div class="spacer"></div>
@@ -59,6 +109,11 @@ export function Settings(nav, applyTheme) {
     el.querySelector('#fam').onchange = e => { store.setting('family', e.target.value); toast('Enregistré'); };
     el.querySelector('#me').onchange = e => { store.setting('me', e.target.value); toast(`Bonjour ${e.target.value} 👋`); };
     el.querySelector('#theme').onchange = e => { store.setting('theme', e.target.value); applyTheme(e.target.value); };
+    el.querySelector('#rem-toggle').onchange = e => {
+      store.setting('remindersEnabled', e.target.checked);
+      toast(e.target.checked ? '🔔 Rappels activés' : 'Rappels désactivés');
+      render();
+    };
     el.querySelectorAll('.role').forEach(s=>s.onchange=()=>{ store.update('members',s.dataset.id,{role:s.value}); toast('Rôle mis à jour'); });
     el.querySelectorAll('.item .del').forEach(b=>b.onclick=async()=>{ const id=b.closest('.item').dataset.id;
       if(await confirmDialog('Retirer le membre','Retirer cette personne de la famille ?')){ store.remove('members',id); render(); }});
