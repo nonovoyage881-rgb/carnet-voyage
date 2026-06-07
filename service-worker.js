@@ -5,7 +5,7 @@
 //  -> évite de rester bloqué sur une ancienne version après une mise à jour.
 //  À chaque déploiement modifiant le SW, on incrémente CACHE.
 // =====================================================================
-const CACHE = 'cvs-v11';
+const CACHE = 'cvs-v12';
 
 const SHELL = [
   './',
@@ -20,8 +20,10 @@ const SHELL = [
   './js/lib/crud.js',
   './js/lib/media.js',
   './js/lib/geo.js',
+  './js/lib/reminders.js',
   './js/views/dashboard.js',
   './js/views/discover.js',
+  './js/views/gallery.js',
   './js/views/reservations.js',
   './js/views/activities.js',
   './js/views/trips.js',
@@ -54,9 +56,25 @@ self.addEventListener('activate', (e) => {
   );
 });
 
+// Cache dédié aux tuiles OpenStreetMap (hors-ligne carte)
+const TILES_CACHE = 'cvs-tiles-v1';
+
 self.addEventListener('fetch', (e) => {
   const { request } = e;
   if (request.method !== 'GET') return;
+
+  // Tuiles OSM : cache d'abord (mises en cache manuellement via le bouton Hors-ligne)
+  if (request.url.includes('tile.openstreetmap.org')) {
+    e.respondWith(
+      caches.open(TILES_CACHE).then(c =>
+        c.match(request).then(hit => hit || fetch(request).then(res => {
+          const copy = res.clone(); c.put(request, copy).catch(()=>{});
+          return res;
+        }).catch(() => new Response('', { status: 503 })))
+      )
+    );
+    return;
+  }
 
   // Réseau d'abord ; on met à jour le cache au passage ; repli cache hors-ligne.
   e.respondWith(
