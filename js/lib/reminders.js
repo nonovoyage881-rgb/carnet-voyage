@@ -14,7 +14,7 @@
 // Données lues : trips, reservations (lecture seule)
 // Données écrites : settings.remindersEnabled, settings.remindersSnooze
 // ──────────────────────────────────────────────────────────────
-import { store } from './store.js';
+import { store } from '../store.js';
 
 const SNOOZE_KEY  = 'cvs_reminder_snooze'; // { "key": timestamp }
 const SNOOZE_MS   = 20 * 60 * 60 * 1000;   // 20 heures
