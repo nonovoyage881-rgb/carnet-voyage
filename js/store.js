@@ -113,13 +113,17 @@ export const store = {
   reset() {
     // Ne touche QUE l'appareil (en mode Firebase, le cloud n'est pas effacé).
     try { localStorage.removeItem(KEY); } catch (e) {}
+    // BUG-07 : remettre bootstrapped à false pour permettre un re-bootstrap correct
+    bootstrapped = false;
     if (mode === 'local') { state = loadLocal(); commit(); }
   },
   export() { return JSON.stringify(state, null, 2); },
-  import(json) {
+  import(json, { syncCloud = false } = {}) {
     state = JSON.parse(json);
     commit();
-    if (mode === 'firebase') pushAllToCloud();   // on pousse aussi vers le cloud
+    // BUG-09 : ne pousser vers le cloud que si explicitement demandé
+    // (settings.js passe syncCloud:true uniquement après confirmation de l'utilisateur)
+    if (mode === 'firebase' && syncCloud) pushAllToCloud();
   },
 
   /* ---------- Firebase ---------- */
