@@ -95,6 +95,9 @@ export function Dashboard(nav) {
     if (!window.L) return;
     const places = store.list('places').filter(p=>p.tripId===trip?.id);
     const center = trip ? [trip.lat, trip.lng] : [46.6, 2.2];
+    // BUG-13 : détruire l'instance Leaflet précédente si elle existe
+    const miniMapNode = document.getElementById('mini-map');
+    if (miniMapNode && miniMapNode._leaflet_id) { try { L.map(miniMapNode).remove(); } catch(e) {} }
     const map = L.map('mini-map', { scrollWheelZoom:false }).setView(center, 8);
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution:'© OpenStreetMap', maxZoom:18 }).addTo(map);
     places.forEach(p => L.marker([p.lat, p.lng]).addTo(map).bindPopup(`<b>${esc(p.name)}</b><br>${esc(p.cat)}`));

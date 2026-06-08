@@ -15,7 +15,7 @@ function photoUploader(container, photos) {
       </div><input type="file" accept="image/*" multiple hidden>`;
     const file = container.querySelector('input[type=file]');
     container.querySelector('.add').onclick = () => file.click();
-    file.onchange = async () => { for (const f of file.files) { try { photos.push(await media.save(f)); } catch (e) {} } draw(); };
+    file.onchange = async () => { for (const f of file.files) { try { photos.push(await media.save(f)); } catch (e) { toast("Impossible d'enregistrer cette photo (espace insuffisant)", "warn"); } } draw(); };
     container.querySelectorAll('.thumb-x').forEach(b => b.onclick = () => { const [rm] = photos.splice(+b.dataset.i, 1); if (rm) media.remove(rm.id); draw(); });
     media.hydrate(container);
   };
@@ -116,7 +116,18 @@ export function Trips(nav) {
     el.querySelector('.add').onclick = ()=>form(null);
     el.querySelectorAll('.edit').forEach(b=>b.onclick=()=>form(store.doc('trips',b.dataset.id)));
     el.querySelectorAll('.setact').forEach(b=>b.onclick=()=>{ store.setting('activeTripId',b.dataset.id); toast('Voyage actif mis à jour'); render(); });
-    el.querySelectorAll('.del').forEach(b=>b.onclick=async()=>{ if(await confirmDialog('Supprimer le voyage','Cette action est définitive.')){ const t=store.doc('trips',b.dataset.id); (t?.photos||[]).forEach(p=>media.remove(p.id)); store.remove('trips',b.dataset.id); toast('Supprimé','warn'); render(); }});
+    el.querySelectorAll('.del').forEach(b=>b.onclick=async()=>{ if(await confirmDialog('Supprimer le voyage','Cette action est définitive.')){ const t=store.doc('trips',b.dataset.id); (t?.photos||[]).forEach(p=>media.remove(p.id)); store.remove('trips',b.dataset.id);
+          // BUG-10 : supprimer toutes les données liées au voyage (évite les orphelins)
+          const tid = b.dataset.id;
+          ['expenses','activities','reservations','places','hikes','itineraries','checklists','documents','journal']
+            .forEach(coll => store.list(coll).filter(x=>x.tripId===tid).forEach(x=>{
+              (x.photos||[]).forEach(p=>media.remove(p.id));
+              (x.docs||[]).forEach(p=>media.remove(p.id));
+              store.remove(coll, x.id);
+            }));
+          // BUG-12 : effacer linkedTripId sur les idées qui pointaient vers ce voyage
+          store.list('ideas').filter(x=>x.linkedTripId===tid).forEach(x=>store.update('ideas',x.id,{linkedTripId:null}));
+          toast('Supprimé','warn'); render(); }});
     el.querySelector('.jadd').onclick=async()=>{ await modal({ title:'Note de journal', body:`<form>
       <div class="field"><label>Date</label><input name="date" type="date" value="${new Date().toISOString().slice(0,10)}"></div>
       <div class="field"><label>Votre récit</label><textarea name="text" placeholder="Ce qu'on a vécu aujourd'hui…"></textarea></div></form>`,

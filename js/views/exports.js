@@ -53,7 +53,7 @@ function buildTripDoc(trip) {
     <p>${esc(trip.notes||'')}</p>
     <h2>💰 Budget</h2><p>Prévisionnel : <b>${fmtMoney(trip.budget)}</b> · Dépensé : <b>${fmtMoney(spent)}</b> · Restant : <b>${fmtMoney(trip.budget-spent)}</b></p>
     <h2>🎟️ Réservations</h2><table><tr><th>Type</th><th>Intitulé</th><th>Date</th><th>Montant</th></tr>
-      ${res.map(r=>`<tr><td><span class="tag">${esc(r.type)}</span></td><td>${esc(r.title)}</td><td>${fmtDate(r.date)}</td><td>${fmtMoney(r.price)}</td></tr>`).join('')||'<tr><td colspan=4>—</td></tr>'}</table>
+      ${res.map(r=>`<tr><td><span class="tag">${esc(r.type)}</span></td><td>${esc(r.name||r.type)}</td><td>${fmtDate(r.arrDate)}</td><td>${fmtMoney(r.total)}</td></tr>`).join('')||'<tr><td colspan=4>—</td></tr>'}</table>
     <h2>🎒 Activités</h2><ul>${acts.map(a=>`<li>${esc(a.title)} — ${esc(a.cat)} ${a.pets?'🐾':''}</li>`).join('')||'<li>—</li>'}</ul>`;
 }
 

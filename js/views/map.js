@@ -46,6 +46,9 @@ export function MapView() {
   setTimeout(() => {
     if (!window.L) { el.querySelector('#map').innerHTML = '<p style="padding:20px">Carte indisponible hors ligne.</p>'; return; }
     const center = trip && hasCoords(trip) ? [trip.lat, trip.lng] : [46.6, 2.2];
+    // BUG-13 : détruire une instance Leaflet précédente sur ce nœud avant d'en créer une nouvelle
+    const mapNode = el.querySelector('#map');
+    if (mapNode._leaflet_id) { try { L.map(mapNode).remove(); } catch(e) {} }
     const map = L.map('map').setView(center, 7);
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '© OpenStreetMap', maxZoom: 18 }).addTo(map);
 

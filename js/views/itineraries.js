@@ -66,7 +66,8 @@ export function Itineraries() {
 
   function getIt() {
     let it = store.list('itineraries').find(i => i.tripId === trip?.id);
-    if (!it) it = store.add('itineraries', { tripId: trip?.id, stops: [] });
+    // BUG-04 : ne créer l'itinéraire vide que si un voyage actif existe
+    if (!it && trip?.id) it = store.add('itineraries', { tripId: trip.id, stops: [] });
     return it;
   }
 
@@ -78,6 +79,8 @@ export function Itineraries() {
 
   function render() {
     const it = getIt();
+    // BUG-04 : si aucun voyage actif, getIt() renvoie undefined — afficher message vide
+    if (!it) { el.innerHTML = '<p style="color:var(--ink-faint);padding:20px">Sélectionnez un voyage pour gérer son itinéraire.</p>'; return; }
     const osrm = it.osrmData;
     const hasOSRM = osrm && osrm.legs && osrm.legs.length === it.stops.length - 1;
     const hav  = totalsHaversine(it.stops);

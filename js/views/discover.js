@@ -89,7 +89,7 @@ function photoUploader(container, photos) {
     const file = container.querySelector('input[type=file]');
     container.querySelector('.add').onclick = () => file.click();
     file.onchange = async () => {
-      for (const f of file.files) { try { photos.push(await media.save(f)); } catch (e) {} }
+      for (const f of file.files) { try { photos.push(await media.save(f)); } catch (e) { toast("Impossible d'enregistrer cette photo (espace insuffisant)", "warn"); } }
       draw();
     };
     container.querySelectorAll('.thumb-x').forEach(b => b.onclick = async () => {

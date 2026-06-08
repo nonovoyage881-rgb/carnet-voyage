@@ -116,7 +116,12 @@ export function Settings(nav, applyTheme) {
     };
     el.querySelectorAll('.role').forEach(s=>s.onchange=()=>{ store.update('members',s.dataset.id,{role:s.value}); toast('Rôle mis à jour'); });
     el.querySelectorAll('.item .del').forEach(b=>b.onclick=async()=>{ const id=b.closest('.item').dataset.id;
-      if(await confirmDialog('Retirer le membre','Retirer cette personne de la famille ?')){ store.remove('members',id); render(); }});
+      if(await confirmDialog('Retirer le membre','Retirer cette personne de la famille ?')){
+          // RISQUE-07 : lire le nom AVANT remove (après, doc() retourne null)
+          const removedName = store.doc('members', id)?.name;
+          store.remove('members',id);
+          if (removedName && store.setting('me') === removedName) store.setting('me', '');
+          render(); }});
 
     el.querySelector('.invite').onclick = async ()=>{ await modal({ title:'Inviter un membre', body:`<form>
       <div class="field"><label>Prénom</label><input name="name"></div>
@@ -127,8 +132,18 @@ export function Settings(nav, applyTheme) {
     el.querySelector('.exp').onclick = ()=>{ const blob=new Blob([store.export()],{type:'application/json'});
       const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='carnet-voyage-sauvegarde.json'; a.click(); toast('Sauvegarde exportée'); };
     el.querySelector('.imp').onclick = ()=>el.querySelector('#imp-file').click();
-    el.querySelector('#imp-file').onchange = (ev)=>{ const f=ev.target.files[0]; if(!f) return; const fr=new FileReader();
-      fr.onload=()=>{ try{ store.import(fr.result); toast('Sauvegarde restaurée'); location.reload(); }catch{ toast('Fichier invalide','danger'); } }; fr.readAsText(f); };
+    el.querySelector('#imp-file').onchange = async (ev)=>{ const f=ev.target.files[0]; if(!f) return; const fr=new FileReader();
+      fr.onload=async ()=>{ try{
+        // BUG-09 : en mode Firebase, confirmer avant d'écraser les données cloud de toute la famille
+        let syncCloud = false;
+        if (store.mode === 'firebase') {
+          const ok = await confirmDialog('Remplacer les données familiales',
+            'Cette sauvegarde va remplacer les données de tous les membres sur tous les appareils. Continuer ?');
+          if (!ok) return;
+          syncCloud = true;
+        }
+        store.import(fr.result, { syncCloud }); toast('Sauvegarde restaurée'); location.reload();
+      }catch{ toast('Fichier invalide','danger'); } }; fr.readAsText(f); };
     el.querySelector('.reset').onclick = async ()=>{ if(await confirmDialog('Réinitialiser','Toutes vos données seront effacées et remplacées par la démo.')){ store.reset(); location.reload(); }};
   }
   render();
