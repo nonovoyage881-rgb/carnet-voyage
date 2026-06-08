@@ -9,7 +9,12 @@ const SPACING = 1100; // ms minimum entre deux requêtes Nominatim
 let _chain = Promise.resolve();
 
 function readCache() { try { return JSON.parse(localStorage.getItem(CACHE_KEY) || '{}'); } catch (e) { return {}; } }
-function writeCache(c) { try { localStorage.setItem(CACHE_KEY, JSON.stringify(c)); } catch (e) {} }
+function writeCache(c) {
+  // BUG-11 : purger les entrées de plus de 90 jours pour éviter la saturation du localStorage
+  const limit = Date.now() - 90 * 86400000;
+  for (const k of Object.keys(c)) { if (c[k] && c[k].cachedAt && c[k].cachedAt < limit) delete c[k]; }
+  try { localStorage.setItem(CACHE_KEY, JSON.stringify(c)); } catch (e) {}
+}
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 export function hasCoords(x) {
@@ -37,7 +42,7 @@ export async function geocode(query) {
   if (!query) return null;
   const key = query.toLowerCase();
   const c = readCache();
-  if (c[key]) return c[key].fail ? null : c[key];   // déjà connu (succès ou échec)
+  if (c[key]) return c[key].fail ? null : { lat: c[key].lat, lng: c[key].lng };   // déjà connu (succès ou échec)
 
   const result = await (_chain = _chain.then(async () => {
     await sleep(SPACING);
@@ -51,7 +56,7 @@ export async function geocode(query) {
   }));
 
   const c2 = readCache();
-  c2[key] = result || { fail: true };
+  c2[key] = result ? { ...result, cachedAt: Date.now() } : { fail: true, cachedAt: Date.now() };
   writeCache(c2);
   return result;
 }
