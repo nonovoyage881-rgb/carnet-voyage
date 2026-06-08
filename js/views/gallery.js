@@ -13,18 +13,17 @@ export function Gallery() {
   const el = document.createElement('div');
   const trip = store.activeTrip();
 
-  // BUG-02 + BUG-03 : nettoyage garanti quand on navigue ailleurs sans fermer la lightbox.
-  // _cleanup() réinitialise body.overflow et supprime le listener clavier.
+  // BUG-02 : réinitialise body.overflow si on navigue sans fermer la lightbox.
+  // BUG-03 : supprime le listener clavier orphelin.
+  // Approche : écouter l'événement de navigation (hashchange) plutôt qu'un
+  // MutationObserver subtree qui interfère avec le rendu interne de la lightbox.
   let _kbNav = null;
   function _cleanup() {
     document.body.style.overflow = '';
     if (_kbNav) { document.removeEventListener('keydown', _kbNav); _kbNav = null; }
   }
-  // Détecte quand le nœud est retiré du DOM (navigation vers une autre vue)
-  const _obs = new MutationObserver(() => {
-    if (!document.body.contains(el)) { _cleanup(); _obs.disconnect(); }
-  });
-  _obs.observe(document.body, { childList: true, subtree: true });
+  function _onHashChange() { _cleanup(); window.removeEventListener('hashchange', _onHashChange); }
+  window.addEventListener('hashchange', _onHashChange);
 
   // ── Collecte toutes les photos du voyage actif ──────────────
   function collectPhotos() {
@@ -130,7 +129,7 @@ export function Gallery() {
     function closeLightbox() {
       lb.hidden = true;
       document.body.style.overflow = '';
-      // BUG-03 : supprimer le listener clavier dès la fermeture normale aussi
+      // BUG-03 : supprimer le listener clavier à la fermeture
       if (_kbNav) { document.removeEventListener('keydown', _kbNav); _kbNav = null; }
     }
 
@@ -143,7 +142,7 @@ export function Gallery() {
       if (e.target === lb || e.target === lbImg) closeLightbox();
     };
 
-    // BUG-03 : listener nommé stocké dans _kbNav pour pouvoir le supprimer à tout moment
+    // BUG-03 : listener clavier stocké pour suppression propre
     _kbNav = function kbNav(e) {
       if (lb.hidden) return;
       if (e.key === 'ArrowLeft')  showSlide(current - 1);
