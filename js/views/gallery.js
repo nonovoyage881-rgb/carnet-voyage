@@ -1,10 +1,4 @@
 // js/views/gallery.js — Galerie photos centralisée par voyage
-// ─────────────────────────────────────────────────────────────
-// Collecte toutes les photos des collections suivantes pour le
-// voyage actif : trips, activities, reservations, ideas.
-// Lecture seule — aucune donnée n'est modifiée.
-// Compatible avec toutes les données existantes.
-// ─────────────────────────────────────────────────────────────
 import { store } from '../store.js';
 import { icon, esc } from '../lib/ui.js';
 import { media }  from '../lib/media.js';
@@ -13,10 +7,8 @@ export function Gallery() {
   const el = document.createElement('div');
   const trip = store.activeTrip();
 
-  // BUG-02 : réinitialise body.overflow si on navigue sans fermer la lightbox.
-  // BUG-03 : supprime le listener clavier orphelin.
-  // Approche : écouter l'événement de navigation (hashchange) plutôt qu'un
-  // MutationObserver subtree qui interfère avec le rendu interne de la lightbox.
+  // BUG-02 : réinitialise body.overflow si on navigue sans fermer la lightbox
+  // BUG-03 : supprime le listener clavier orphelin
   let _kbNav = null;
   function _cleanup() {
     document.body.style.overflow = '';
@@ -25,36 +17,26 @@ export function Gallery() {
   function _onHashChange() { _cleanup(); window.removeEventListener('hashchange', _onHashChange); }
   window.addEventListener('hashchange', _onHashChange);
 
-  // ── Collecte toutes les photos du voyage actif ──────────────
   function collectPhotos() {
     const photos = [];
-
-    // Photos du voyage lui-même
     const t = trip;
     if (t && t.photos) {
       t.photos.forEach(p => photos.push({ id: p.id, source: `Voyage · ${esc(t.title)}`, date: t.start || '' }));
     }
-
-    // Photos des activités
     store.list('activities')
       .filter(a => !a.tripId || a.tripId === trip?.id)
       .forEach(a => (a.photos || []).forEach(p =>
         photos.push({ id: p.id, source: `Activité · ${esc(a.title)}`, date: a.createdAt || '' })
       ));
-
-    // Photos des réservations
     store.list('reservations')
       .filter(r => !r.tripId || r.tripId === trip?.id)
       .forEach(r => (r.photos || []).forEach(p =>
         photos.push({ id: p.id, source: `Réservation · ${esc(r.name || r.type)}`, date: r.arrDate || '' })
       ));
-
-    // Photos des idées de découverte (toutes, pas filtrées par voyage)
     store.list('ideas')
       .forEach(i => (i.photos || []).forEach(p =>
         photos.push({ id: p.id, source: `Découverte · ${esc(i.title)}`, date: '' })
       ));
-
     return photos;
   }
 
@@ -77,43 +59,64 @@ export function Gallery() {
           <h3>Aucune photo pour l'instant</h3>
           <p>Ajoutez des photos dans vos activités, réservations ou fiches voyage.</p>
         </div>` : `
-
         <div class="gallery-grid" id="gallery-grid">
           ${photos.map((p, idx) => `
             <div class="gallery-item" data-idx="${idx}" title="${p.source}">
               <img data-media="${p.id}" alt="${p.source}">
               <div class="gallery-item-label">${p.source}</div>
             </div>`).join('')}
-        </div>
-
-        <!-- Lightbox -->
-        <div class="gallery-lightbox" id="gallery-lightbox" hidden>
-          <button class="gallery-lb-close" id="lb-close">${icon('x')}</button>
-          <button class="gallery-lb-prev" id="lb-prev">‹</button>
-          <div class="gallery-lb-img-wrap">
-            <img id="lb-img" src="" alt="">
-            <div class="gallery-lb-caption" id="lb-caption"></div>
-          </div>
-          <button class="gallery-lb-next" id="lb-next">›</button>
         </div>`}`;
 
-    // Hydrater les miniatures
     media.hydrate(el);
 
     if (photos.length === 0) return;
 
-    // ── Lightbox ────────────────────────────────────────────
+    // ── Lightbox créée en dehors de el, directement dans body ──
+    // Évite tout conflit de z-index ou de hidden avec le conteneur parent
+    let lb = document.getElementById('cvs-lightbox');
+    if (!lb) {
+      lb = document.createElement('div');
+      lb.id = 'cvs-lightbox';
+      lb.style.cssText = `
+        display:none; position:fixed; inset:0; z-index:9999;
+        background:rgba(10,8,5,.92);
+        align-items:center; justify-content:center; gap:16px; padding:20px;
+        animation:fade .2s;
+      `;
+      lb.innerHTML = `
+        <button id="cvs-lb-close" style="
+          position:fixed; top:16px; right:16px;
+          background:rgba(255,255,255,.2); border:none; color:#fff;
+          width:42px; height:42px; border-radius:50%;
+          display:grid; place-items:center;
+          cursor:pointer; font-size:1.4rem; z-index:10000;
+        ">${icon('x')}</button>
+        <button id="cvs-lb-prev" style="
+          background:rgba(255,255,255,.12); border:none; color:#fff;
+          width:44px; height:44px; border-radius:50%;
+          font-size:1.6rem; line-height:1; cursor:pointer; flex-shrink:0;
+        ">‹</button>
+        <div style="flex:1;max-width:860px;display:flex;flex-direction:column;align-items:center;gap:12px;">
+          <img id="cvs-lb-img" src="" alt="" style="max-width:100%;max-height:80dvh;border-radius:12px;object-fit:contain;box-shadow:0 8px 40px rgba(0,0,0,.5);">
+          <div id="cvs-lb-cap" style="color:rgba(255,255,255,.7);font-size:.85rem;text-align:center;"></div>
+        </div>
+        <button id="cvs-lb-next" style="
+          background:rgba(255,255,255,.12); border:none; color:#fff;
+          width:44px; height:44px; border-radius:50%;
+          font-size:1.6rem; line-height:1; cursor:pointer; flex-shrink:0;
+        ">›</button>`;
+      document.body.appendChild(lb);
+    }
+
+    const lbImg = lb.querySelector('#cvs-lb-img');
+    const lbCap = lb.querySelector('#cvs-lb-cap');
     let current = 0;
 
-    const lb      = el.querySelector('#gallery-lightbox');
-    const lbImg   = el.querySelector('#lb-img');
-    const lbCap   = el.querySelector('#lb-caption');
-
-    async function openLightbox(idx) {
-      current = idx;
-      lb.hidden = false;
+    function openLightbox(idx) {
+      current = (idx + photos.length) % photos.length;
+      lb.style.display = 'flex';
       document.body.style.overflow = 'hidden';
-      await showSlide(idx);
+      showSlide(current);
     }
 
     async function showSlide(idx) {
@@ -127,31 +130,25 @@ export function Gallery() {
     }
 
     function closeLightbox() {
-      lb.hidden = true;
+      lb.style.display = 'none';
       document.body.style.overflow = '';
-      // BUG-03 : supprimer le listener clavier à la fermeture
       if (_kbNav) { document.removeEventListener('keydown', _kbNav); _kbNav = null; }
     }
 
-    el.querySelector('#lb-close').onclick = closeLightbox;
-    el.querySelector('#lb-prev').onclick  = (e) => { e.stopPropagation(); showSlide(current - 1); };
-    el.querySelector('#lb-next').onclick  = (e) => { e.stopPropagation(); showSlide(current + 1); };
+    // Rebind à chaque ouverture de la galerie (au cas où lb existait déjà)
+    lb.querySelector('#cvs-lb-close').onclick = closeLightbox;
+    lb.querySelector('#cvs-lb-prev').onclick  = (e) => { e.stopPropagation(); showSlide(current - 1); };
+    lb.querySelector('#cvs-lb-next').onclick  = (e) => { e.stopPropagation(); showSlide(current + 1); };
+    lb.onclick = (e) => { if (e.target === lb) closeLightbox(); };
 
-    // Fermer en cliquant sur le fond OU sur la photo
-    lb.onclick = (e) => {
-      if (e.target === lb || e.target === lbImg) closeLightbox();
-    };
-
-    // BUG-03 : listener clavier stocké pour suppression propre
-    _kbNav = function kbNav(e) {
-      if (lb.hidden) return;
+    _kbNav = function(e) {
+      if (lb.style.display === 'none') return;
       if (e.key === 'ArrowLeft')  showSlide(current - 1);
       if (e.key === 'ArrowRight') showSlide(current + 1);
       if (e.key === 'Escape')     closeLightbox();
     };
     document.addEventListener('keydown', _kbNav);
 
-    // Ouvrir au clic sur une miniature
     el.querySelector('#gallery-grid').addEventListener('click', e => {
       const item = e.target.closest('[data-idx]');
       if (item) openLightbox(+item.dataset.idx);
