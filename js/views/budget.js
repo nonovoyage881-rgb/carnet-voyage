@@ -195,7 +195,7 @@ export function Budget() {
     el.querySelectorAll('.import-one').forEach(b => b.onclick = () => importActivity(b.dataset.aid));
 
     // ── Tout importer ──────────────────────────────────────────
-    el.querySelector('#import-all')?.onclick = async () => {
+    const importAll = el.querySelector('#import-all'); if (importAll) importAll.onclick = async () => {
       const ok = await confirmDialog(
         'Importer toutes les activités',
         `Ajouter ${actsWithPrice.length} activité(s) aux dépenses ? Les doublons seront ignorés.`
