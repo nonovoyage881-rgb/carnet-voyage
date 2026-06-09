@@ -150,7 +150,7 @@ export function Budget() {
     });
 
     // ── Nouvelle dépense ───────────────────────────────────────
-    el.querySelector('.add')?.onclick = async () => {
+    const addBtn = el.querySelector('.add'); if (addBtn) addBtn.onclick = async () => {
       await modal({ title:'Nouvelle dépense', body:`<form>
         <div class="field"><label>Libellé</label><input name="label"></div>
         <div class="row">
