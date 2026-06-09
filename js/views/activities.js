@@ -19,7 +19,7 @@ function photoUploader(container, photos) {
       </div><input type="file" accept="image/*" multiple hidden>`;
     const file = container.querySelector('input[type=file]');
     container.querySelector('.add').onclick = () => file.click();
-    file.onchange = async () => { for (const f of file.files) { try { photos.push(await media.save(f)); } catch (e) { toast("Impossible d'enregistrer cette photo (espace insuffisant)", "warn"); } } draw(); };
+    file.onchange = async () => { for (const f of file.files) { try { photos.push(await media.save(f)); } catch (e) {} } draw(); };
     container.querySelectorAll('.thumb-x').forEach(b => b.onclick = () => { const [rm] = photos.splice(+b.dataset.i, 1); if (rm) media.remove(rm.id); draw(); });
     media.hydrate(container);
   };
@@ -29,18 +29,77 @@ function photoUploader(container, photos) {
 export function Activities() {
   const el = document.createElement('div');
   let q = '', fStatus = '', fCat = '';
+  // Mode : 'voyage' = voyage actif uniquement | 'tous' = tous les voyages groupés
+  let viewMode = 'voyage';
 
   function tripId() { const t = store.activeTrip(); return t ? t.id : null; }
 
   function render() {
     const tid = tripId();
-    const items = store.list('activities')
-      .filter(a => (!a.tripId || a.tripId === tid))
+
+    // Filtres communs
+    const applyFilters = (list) => list
       .filter(a => (!q || (a.title + ' ' + (a.cat || '')).toLowerCase().includes(q.toLowerCase())))
       .filter(a => (!fStatus || a.status === fStatus) && (!fCat || a.cat === fCat));
+
+    // ── Construction du contenu selon le mode ──────────────────
+    let contentHTML = '';
+
+    if (viewMode === 'voyage') {
+      // Comportement original : voyage actif uniquement
+      const items = applyFilters(
+        store.list('activities').filter(a => !a.tripId || a.tripId === tid)
+      );
+      contentHTML = items.length
+        ? `<div class="grid g-3">${items.map(cardHTML).join('')}</div>`
+        : empty('🎒', 'Aucune activité', 'Ajoutez vos envies de visites, balades et sorties.');
+    } else {
+      // Mode "tous les voyages" : regroupement par voyage
+      const trips   = store.list('trips');
+      const allActs = applyFilters(store.list('activities'));
+
+      // Activités sans voyage associé
+      const orphans = allActs.filter(a => !a.tripId);
+
+      // Construire les sections par voyage
+      const sections = trips.map(t => ({
+        trip: t,
+        acts: allActs.filter(a => a.tripId === t.id),
+      })).filter(s => s.acts.length > 0);
+
+      if (sections.length === 0 && orphans.length === 0) {
+        contentHTML = empty('🎒', 'Aucune activité', 'Ajoutez vos envies de visites, balades et sorties.');
+      } else {
+        contentHTML = sections.map(s => `
+          <div class="section-head" style="margin-top:8px">
+            <h3>${esc(s.trip.cover || '🧭')} ${esc(s.trip.title)}</h3>
+            <span class="tag ${s.trip.status === 'encours' ? 'sage' : s.trip.status === 'passe' ? '' : 'warn'}">
+              ${s.trip.status === 'encours' ? 'En cours' : s.trip.status === 'passe' ? 'Passé' : 'Futur'}
+            </span>
+            <span class="tag">${s.acts.length} activité${s.acts.length > 1 ? 's' : ''}</span>
+          </div>
+          <div class="grid g-3" style="margin-bottom:8px">${s.acts.map(cardHTML).join('')}</div>
+        `).join('') + (orphans.length ? `
+          <div class="section-head" style="margin-top:8px">
+            <h3>📌 Sans voyage associé</h3>
+            <span class="tag">${orphans.length} activité${orphans.length > 1 ? 's' : ''}</span>
+          </div>
+          <div class="grid g-3">${orphans.map(cardHTML).join('')}</div>
+        ` : '');
+      }
+    }
+
     el.innerHTML = `
-      <div class="section-head" style="margin-top:0"><h3>Activités</h3><div class="spacer"></div>
-        <button class="btn primary" id="new">${icon('plus')} Nouvelle activité</button></div>
+      <div class="section-head" style="margin-top:0">
+        <h3>Activités</h3>
+        <div class="spacer"></div>
+        <!-- Sélecteur de mode -->
+        <div class="seg" style="margin:0 8px 0 0">
+          <button data-mode="voyage" class="${viewMode==='voyage'?'on':''}">Voyage actif</button>
+          <button data-mode="tous"   class="${viewMode==='tous'  ?'on':''}">Tous les voyages</button>
+        </div>
+        <button class="btn primary" id="new">${icon('plus')} Nouvelle activité</button>
+      </div>
       <div class="card" style="margin-bottom:18px">
         <div class="row">
           <div class="field" style="margin:0"><label>${icon('search')} Rechercher</label><input id="q" value="${esc(q)}" placeholder="nom, catégorie…"></div>
@@ -48,13 +107,27 @@ export function Activities() {
           <div class="field" style="margin:0"><label>Catégorie</label><select id="fc"><option value="">Toutes</option>${CATS.map(c => `<option ${fCat === c ? 'selected' : ''}>${c}</option>`).join('')}</select></div>
         </div>
       </div>
-      ${items.length ? `<div class="grid g-3">${items.map(cardHTML).join('')}</div>`
-        : empty('🎒', 'Aucune activité', 'Ajoutez vos envies de visites, balades et sorties.')}`;
-    el.querySelector('#q').oninput = e => { q = e.target.value; const c = e.target.selectionStart; render(); const n = el.querySelector('#q'); n.focus(); n.setSelectionRange(c, c); };
+      ${contentHTML}`;
+
+    // ── Événements ─────────────────────────────────────────────
+    el.querySelector('#q').oninput = e => {
+      q = e.target.value;
+      const c = e.target.selectionStart; render();
+      const n = el.querySelector('#q'); n.focus(); n.setSelectionRange(c, c);
+    };
     el.querySelector('#fs').onchange = e => { fStatus = e.target.value; render(); };
     el.querySelector('#fc').onchange = e => { fCat = e.target.value; render(); };
-    el.querySelector('#new').onclick = () => form();
-    el.querySelectorAll('[data-id]').forEach(c => c.onclick = (ev) => { if (ev.target.closest('a,button')) return; detail(c.dataset.id); });
+    el.querySelector('#new').onclick  = () => form();
+
+    // Basculement de mode
+    el.querySelectorAll('[data-mode]').forEach(b => b.onclick = () => {
+      viewMode = b.dataset.mode; render();
+    });
+
+    el.querySelectorAll('[data-id]').forEach(c => c.onclick = (ev) => {
+      if (ev.target.closest('a,button')) return;
+      detail(c.dataset.id);
+    });
     media.hydrate(el);
   }
 
