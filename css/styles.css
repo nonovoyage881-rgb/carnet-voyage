@@ -1384,3 +1384,55 @@ a.docrow:hover { border-color: var(--sage-deep); }
   from { transform: translateY(-100%); opacity: 0; }
   to   { transform: none; opacity: 1; }
 }
+
+/* ============================================================
+   MODULE PROGRAMMES
+   Réutilise les classes idea-* et disc-card existantes.
+   Seuls les conteneurs de navigation panneau sont ajoutés.
+   ============================================================ */
+
+/* Système de panneaux (liste ↔ détail), identique à Découverte */
+.prog-root {
+  position: relative;
+  overflow: hidden;
+}
+.prog-panel {
+  display: none;
+}
+.prog-panel--active {
+  display: block;
+  animation: rise .35s var(--ease);
+}
+
+/* Grille de cartes programmes — reprend .grid.g-3 mais auto-fill */
+.prog-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 18px;
+}
+
+/* Rangée de tags dans une carte programme */
+.tagrow {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-top: 8px;
+}
+
+/* Formulaire : ligne de checkbox avec label */
+.checkrow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: .88rem;
+  font-weight: 600;
+  color: var(--ink-soft);
+  cursor: pointer;
+}
+.checkrow input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--sage-deep);
+  cursor: pointer;
+}
