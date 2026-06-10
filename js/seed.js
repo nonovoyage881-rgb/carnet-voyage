@@ -4,6 +4,284 @@ const soon = (d) => { const x = new Date(); x.setDate(x.getDate()+d); return x.t
 export const SEED = {
   settings: { activeTripId: 'trip1', theme: 'light', family: 'Famille Léo' },
 
+  programs: [
+    {
+      id: 'prog1',
+      createdAt: Date.now(),
+      title: 'Côte de Granit Rose en caravane',
+      destination: 'Bretagne Nord, Côtes-d\'Armor',
+      emoji: '🏖️',
+      duree: '7 jours',
+      budgetTotal: 1050,
+      chienOk: true,
+      description: 'Un circuit itinérant le long de la côte la plus spectaculaire de Bretagne. Rochers roses, sentiers côtiers, marchés de pêcheurs et plages dog-friendly. Idéal en caravane avec des emplacements bien dimensionnés et des routes accessibles.',
+      programme: [
+        { day: 'Jour 1 — Arrivée', items: [
+          { label: 'Installation au camping' },
+          { label: 'Balade sur la plage avec le chien en fin d\'après-midi' },
+        ]},
+        { day: 'Jour 2 — Ploumanac\'h et ses rochers', items: [
+          { label: 'Sentier des douaniers GR34 entre Perros-Guirec et Ploumanac\'h' },
+          { label: 'Vue sur le phare au coucher du soleil' },
+        ]},
+        { day: 'Jour 3 — Île de Batz', items: [
+          { label: 'Ferry depuis Roscoff pour l\'île de Batz' },
+          { label: 'Tour de l\'île à vélo ou à pied' },
+        ]},
+        { day: 'Jour 4 — Marché et farniente', items: [
+          { label: 'Marché de Roscoff le matin' },
+          { label: 'Après-midi libre, baignade si météo favorable' },
+        ]},
+        { day: 'Jour 5 — Les Abers', items: [
+          { label: 'Balade en bord d\'estuaire, paysage de landes et de mer' },
+        ]},
+        { day: 'Jour 6 — Cap de la Chèvre', items: [
+          { label: 'Pointe bretonne sauvage, vue sur la mer d\'Iroise' },
+          { label: 'Randonnée accessible, vent garanti' },
+        ]},
+        { day: 'Jour 7 — Retour', items: [
+          { label: 'Départ matinal, pause déjeuner à Morlaix' },
+        ]},
+      ],
+      budgetDetail: [
+        { label: 'Camping 6 nuits (2 pers. + caravane)', montant: 420 },
+        { label: 'Carburant aller-retour', montant: 180 },
+        { label: 'Ferry île de Batz', montant: 40 },
+        { label: 'Repas et courses', montant: 320 },
+        { label: 'Activités et entrées', montant: 90 },
+      ],
+      hebergements: [
+        { nom: 'Camping des Abers, Landéda (grands emplacements, accès plage directe)' },
+        { nom: 'Camping de Perros-Guirec, Trestraou (proche sentier côtier)' },
+        { nom: 'Aire camping-car Roscoff (escale 1 nuit, services complets)' },
+      ],
+      notes: 'Idéal juillet–août. Réserver le camping 3 mois avant. Plages dog-friendly le matin avant 10h en saison. Routes accessibles aux attelages, éviter la D786 en haute saison.',
+      linkedTripId: null,
+    },
+    {
+      id: 'prog2',
+      createdAt: Date.now(),
+      title: 'Ardèche sauvage en famille',
+      destination: 'Gorges de l\'Ardèche, Ardèche',
+      emoji: '🏕️',
+      duree: '10 jours',
+      budgetTotal: 1350,
+      chienOk: true,
+      description: 'La rivière, les gorges, les villages en pierre et les nuits sous les étoiles. Un programme pensé pour une famille avec chien qui veut conjuguer baignade, randonnée et découverte du terrain calcaire ardéchois. Base fixe en camping, rayonnement à la journée.',
+      programme: [
+        { day: 'Jour 1 — Arrivée à Vallon-Pont-d\'Arc', items: [
+          { label: 'Installation au camping' },
+          { label: 'Baignade dans la rivière en fin d\'après-midi' },
+        ]},
+        { day: 'Jour 2 — Descente de l\'Ardèche en canoë', items: [
+          { label: 'Location canoë pour la descente partielle jusqu\'au Pont d\'Arc' },
+          { label: 'Prévoir gardiennage pour le chien sur cette demi-journée' },
+        ]},
+        { day: 'Jour 3 — Sentier de la Combe de Louby', items: [
+          { label: 'Randonnée dans les gorges côté terrestre (chien admis)' },
+          { label: 'Vue plongeante sur la rivière depuis les hauteurs' },
+        ]},
+        { day: 'Jour 4 — Village des Vans', items: [
+          { label: 'Village médiéval provençal, marché du mardi matin' },
+          { label: 'Après-midi farniente au camping' },
+        ]},
+        { day: 'Jour 5 — Grotte de la Madeleine', items: [
+          { label: 'Visite guidée d\'une grotte ardéchoise' },
+          { label: 'Pique-nique sur les hauteurs avec panorama' },
+        ]},
+        { day: 'Jour 6 — Baignade rivière', items: [
+          { label: 'Journée eau et repos en amont de Vallon (dog-friendly)' },
+        ]},
+        { day: 'Jour 7 — Balazuc et Vogüé', items: [
+          { label: 'Deux des plus beaux villages de France à quelques kilomètres' },
+          { label: 'Balade dans les ruelles, produits locaux' },
+        ]},
+        { day: 'Jour 8 — Randonnée plateau des Gras', items: [
+          { label: 'Plateau calcaire au-dessus des gorges, panorama 360°' },
+          { label: 'Paysage de garrigue, silence complet (chien admis)' },
+        ]},
+        { day: 'Jour 9 — Journée libre', items: [
+          { label: 'Retour sur les spots préférés de la semaine' },
+          { label: 'Emplettes locales (miel, châtaigne, vin ardéchois)' },
+        ]},
+        { day: 'Jour 10 — Départ', items: [
+          { label: 'Départ matinal pour éviter la chaleur sur l\'A7' },
+        ]},
+      ],
+      budgetDetail: [
+        { label: 'Camping 9 nuits (2 personnes)', montant: 450 },
+        { label: 'Carburant', montant: 200 },
+        { label: 'Location canoë', montant: 60 },
+        { label: 'Repas et courses', montant: 480 },
+        { label: 'Activités et entrées', montant: 160 },
+      ],
+      hebergements: [
+        { nom: 'Camping La Roubine, Vallon-Pont-d\'Arc (bord de rivière, chien accepté)' },
+        { nom: 'Camping Le Mondial, Ruoms (piscine, bon rapport qualité-prix)' },
+        { nom: 'Camping Les Gorges de l\'Ardèche, Saint-Martin-d\'Ardèche' },
+      ],
+      notes: 'Meilleure période : mi-juin à mi-septembre. En juillet-août, arriver avant 10h aux points de baignade. Réserver le canoë 48h à l\'avance. Vérifier politique chien sur le ferry canoë selon prestataire.',
+      linkedTripId: null,
+    },
+    {
+      id: 'prog3',
+      createdAt: Date.now(),
+      title: 'Périgord noir en gîte',
+      destination: 'Dordogne, Périgord Noir',
+      emoji: '🏰',
+      duree: '8 jours',
+      budgetTotal: 1600,
+      chienOk: true,
+      description: 'Un séjour en base fixe dans un gîte au cœur du Périgord. Châteaux, villages troglodytes, rivière Dordogne et forêts de chênes. Programme de rayonnement à la journée, sans déplacer ses valises. Idéal quand on préfère une vraie cuisine et un jardin clos pour le chien.',
+      programme: [
+        { day: 'Jour 1 — Arrivée', items: [
+          { label: 'Arrivée au gîte, courses au marché local' },
+          { label: 'Balade du soir dans le village avec le chien' },
+        ]},
+        { day: 'Jour 2 — Sarlat-la-Canéda', items: [
+          { label: 'Marché du samedi, vieille ville médiévale' },
+          { label: 'Foie gras et noix en emplettes (chien admis dans les rues)' },
+        ]},
+        { day: 'Jour 3 — Les Eyzies et la préhistoire', items: [
+          { label: 'Musée national de Préhistoire, falaises troglodytes' },
+          { label: 'Randonnée sur le causse en fin d\'après-midi (chien admis)' },
+        ]},
+        { day: 'Jour 4 — Canoë sur la Dordogne', items: [
+          { label: 'Descente en canoë entre La Roque-Gageac et Beynac' },
+          { label: 'Alternative : balade à vélo sur les berges avec le chien' },
+        ]},
+        { day: 'Jour 5 — Châteaux de Beynac et Castelnaud', items: [
+          { label: 'Deux châteaux face à face de part et d\'autre de la rivière' },
+          { label: 'Chien admis à l\'extérieur, panorama exceptionnel' },
+        ]},
+        { day: 'Jour 6 — Forêt Barade', items: [
+          { label: 'Immense forêt de chênes sessiles, sentiers balisés (chien admis)' },
+          { label: 'Journée chien par excellence, calme absolu' },
+        ]},
+        { day: 'Jour 7 — Marché de Belvès', items: [
+          { label: 'Un des plus beaux marchés du Périgord' },
+          { label: 'Village bastide avec caves troglodytes habitées' },
+        ]},
+        { day: 'Jour 8 — Départ', items: [
+          { label: 'Tour du jardin matinal avec le chien, restitution des clés' },
+        ]},
+      ],
+      budgetDetail: [
+        { label: 'Gîte 7 nuits (jardin clos, chien accepté)', montant: 750 },
+        { label: 'Carburant', montant: 160 },
+        { label: 'Canoë ou vélo', montant: 80 },
+        { label: 'Repas, courses et marchés', montant: 480 },
+        { label: 'Entrées châteaux et musées', montant: 130 },
+      ],
+      hebergements: [
+        { nom: 'Gîte Les Chênes, Saint-Cyprien (jardin clos, chien accepté)' },
+        { nom: 'Gîte de la Bessède, Belvès (vue sur vallée, animaux sur demande)' },
+        { nom: 'Gîte du Causse, Les Eyzies (proche sites préhistoriques)' },
+      ],
+      notes: 'Meilleure période : mai-juin et septembre pour éviter la foule. Réserver le gîte 3 à 6 mois à l\'avance en été. Vérifier jardin clos pour le chien à la réservation. Marché de Sarlat le mercredi et samedi.',
+      linkedTripId: null,
+    },
+    {
+      id: 'prog4',
+      createdAt: Date.now(),
+      title: 'Vercors à pied, étape par étape',
+      destination: 'Massif du Vercors, Isère et Drôme',
+      emoji: '🏔️',
+      duree: '6 jours',
+      budgetTotal: 780,
+      chienOk: true,
+      description: 'Le plateau du Vercors est l\'un des massifs les plus accessibles pour la randonnée en famille avec chien. Forêts de hêtres, falaises blanches, villages perchés et prairies d\'altitude. Programme itinérant léger, nuits en camping.',
+      programme: [
+        { day: 'Jour 1 — Arrivée à Villard-de-Lans', items: [
+          { label: 'Installation au camping, repérage du bourg' },
+          { label: 'Premiers lacets dans la forêt en fin d\'après-midi' },
+        ]},
+        { day: 'Jour 2 — Sentier des Bergers', items: [
+          { label: 'Randonnée sur le plateau depuis Villard (12 km, 400 m D+)' },
+          { label: 'Vue sur les Alpes par temps clair, chien admis' },
+        ]},
+        { day: 'Jour 3 — Gorges de la Bourne', items: [
+          { label: 'Descente dans les gorges depuis le plateau' },
+          { label: 'Demi-journée randonnée, demi-journée baignade en rivière' },
+        ]},
+        { day: 'Jour 4 — Pas de l\'Aiguille', items: [
+          { label: 'Montée au Pas de l\'Aiguille par le sentier balisé (9 km AR)' },
+          { label: 'Panorama 360° sur le plateau et les vallées, pique-nique au sommet' },
+        ]},
+        { day: 'Jour 5 — Font d\'Urle', items: [
+          { label: 'Randonnée sur le plateau nord, flore alpine (chien admis)' },
+          { label: 'Terrain idéal pour un chien, large espace' },
+        ]},
+        { day: 'Jour 6 — Descente et départ', items: [
+          { label: 'Balade matinale de clôture' },
+          { label: 'Descente en vallée et retour' },
+        ]},
+      ],
+      budgetDetail: [
+        { label: 'Camping 5 nuits (2 personnes)', montant: 200 },
+        { label: 'Carburant', montant: 140 },
+        { label: 'Repas et courses', montant: 300 },
+        { label: 'Activités et parc animalier', montant: 80 },
+        { label: 'Divers (pharmacie, équipement)', montant: 60 },
+      ],
+      hebergements: [
+        { nom: 'Camping de l\'Herbetière, Villard-de-Lans (chien accepté, proximité sentiers)' },
+        { nom: 'Camping du Gouffre de la Croix, Choranche (gorges, cadre exceptionnel)' },
+        { nom: 'Camping La Porte de Vassieux, Vassieux-en-Vercors (plateau, calme total)' },
+      ],
+      notes: 'Meilleure période : juin à septembre. En juillet-août, partir tôt pour les randonnées (chaleur l\'après-midi). Prévoir eau supplémentaire pour le chien en altitude. Certains sentiers de réserve naturelle interdits aux chiens — vérifier le balisage.',
+      linkedTripId: null,
+    },
+    {
+      id: 'prog5',
+      createdAt: Date.now(),
+      title: 'Baie du Mont-Saint-Michel',
+      destination: 'Manche et Normandie Sud',
+      emoji: '🌊',
+      duree: '5 jours',
+      budgetTotal: 870,
+      chienOk: true,
+      description: 'Court séjour entre la baie mythique, les herbus et les chemins creux du bocage normand. Programme équilibré entre grande randonnée sur les grèves, visite du Mont, villages normands et étapes gourmandes. Idéal pour un long week-end ou court séjour.',
+      programme: [
+        { day: 'Jour 1 — Arrivée', items: [
+          { label: 'Installation, premier regard sur la baie depuis le belvédère de Courtils' },
+          { label: 'Lumière de fin de journée sur les grèves, incontournable' },
+        ]},
+        { day: 'Jour 2 — Traversée de la baie à pied', items: [
+          { label: 'Traversée guidée de la baie à marée basse (3 à 4 heures)' },
+          { label: 'Chien admis selon les guides — vérifier à la réservation' },
+        ]},
+        { day: 'Jour 3 — Mont-Saint-Michel', items: [
+          { label: 'Abbaye le matin à l\'ouverture pour éviter la foule' },
+          { label: 'Chien admis dans les ruelles et sur les remparts (pas dans l\'abbaye)' },
+          { label: 'Promenade sur les polders et les herbus autour du Mont' },
+        ]},
+        { day: 'Jour 4 — Avranches et bocage normand', items: [
+          { label: 'Marché d\'Avranches le matin' },
+          { label: 'Chemins creux du bocage, haies centenaires, balade chien 2h' },
+        ]},
+        { day: 'Jour 5 — Plage de Carolles et départ', items: [
+          { label: 'Dernière matinée sur la plage de Carolles, vue sur le Mont depuis la côte' },
+          { label: 'Départ en milieu de journée' },
+        ]},
+      ],
+      budgetDetail: [
+        { label: 'Camping ou location 4 nuits', montant: 380 },
+        { label: 'Carburant', montant: 150 },
+        { label: 'Traversée guidée de la baie', montant: 60 },
+        { label: 'Entrée abbaye', montant: 50 },
+        { label: 'Repas et courses', montant: 230 },
+      ],
+      hebergements: [
+        { nom: 'Camping Haliotis, Pontorson (4 étoiles, chien accepté, navette Mont)' },
+        { nom: 'Camping du Mont-Saint-Michel, Beauvoir (vue directe, chien accepté)' },
+        { nom: 'Gîte Les Herbus, Courtils (vue baie, jardin clos, idéal avec chien)' },
+      ],
+      notes: 'Meilleure période : mai-juin et septembre (moins de monde). Les grandes marées ont lieu à date fixe — consulter le calendrier des marées pour la traversée. Réserver le guide de traversée au moins 2 semaines à l\'avance en saison.',
+      linkedTripId: null,
+    },
+  ],
+
   members: [
     { id:'u1', name:'Papa', role:'Administrateur', email:'papa@famille.fr', color:'#6e8a62' },
     { id:'u2', name:'Maman', role:'Parent', email:'maman@famille.fr', color:'#6fa9cc' },
