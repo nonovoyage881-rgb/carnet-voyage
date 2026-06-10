@@ -18,6 +18,7 @@ const LOCAL_SETTINGS = ['me', 'theme', 'myRole', 'activeTripId'];
 const COLLECTIONS = Array.from(new Set([
   ...Object.keys(SEED).filter(k => k !== 'settings'),
   'journal',
+  'programs',
 ]));
 
 let mode = 'local';
