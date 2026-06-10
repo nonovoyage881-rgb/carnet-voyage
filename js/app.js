@@ -7,6 +7,7 @@ import { media } from './lib/media.js';
 
 import { Dashboard }    from './views/dashboard.js';
 import { Discover }     from './views/discover.js';
+import { Programs }     from './views/programs.js';
 import { Gallery }      from './views/gallery.js';
 import { checkReminders } from './lib/reminders.js';
 import { Trips }        from './views/trips.js';
@@ -30,6 +31,7 @@ import {
 const ROUTES = {
   dashboard:    { label: 'Tableau de bord', icon: 'home',     view: Dashboard,    group: null },
   discover:     { label: 'Découverte',      icon: 'compass',  view: Discover,     group: 'Préparer' },
+  programs:     { label: 'Programmes',      icon: 'map',      view: Programs,     group: 'Préparer' },
   gallery:      { label: 'Galerie photos',  icon: 'image',    view: Gallery,      group: 'Préparer' },
   trips:        { label: 'Voyages',         icon: 'suitcase', view: Trips,        group: 'Préparer' },
   itineraries:  { label: 'Itinéraires',     icon: 'route',    view: Itineraries,  group: 'Préparer' },
