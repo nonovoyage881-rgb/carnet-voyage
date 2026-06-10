@@ -18,9 +18,42 @@
 
 import { store } from '../store.js';
 import { icon, toast, fmtMoney, esc, sheet, confirmDialog, empty } from '../lib/ui.js';
+import { media } from '../lib/media.js';
 
 // ── Constantes ────────────────────────────────────────────────────────────
 const DEFAULT_EMOJI = '🗺️';
+
+// ── Photo uploader (même pattern que activities.js) ───────────────────────
+function photoUploader(container, photos) {
+  const draw = () => {
+    container.innerHTML = `
+      <div class="thumbs">
+        ${photos.map((p, i) => `
+          <div class="thumb">
+            <img data-media="${p.id}" alt="">
+            <button type="button" class="thumb-x" data-i="${i}">${icon('x')}</button>
+          </div>`).join('')}
+        <button type="button" class="thumb add">${icon('camera')}<span>Ajouter</span></button>
+      </div>
+      <input type="file" accept="image/*" multiple hidden>`;
+    const fileInput = container.querySelector('input[type=file]');
+    container.querySelector('.add').onclick = () => fileInput.click();
+    fileInput.onchange = async () => {
+      for (const f of fileInput.files) {
+        try { photos.push(await media.save(f)); } catch (e) {}
+      }
+      draw();
+    };
+    container.querySelectorAll('.thumb-x').forEach(b =>
+      b.onclick = () => {
+        const [rm] = photos.splice(+b.dataset.i, 1);
+        if (rm) media.remove(rm.id);
+        draw();
+      });
+    media.hydrate(container);
+  };
+  draw();
+}
 
 // ── Helpers ───────────────────────────────────────────────────────────────
 
@@ -153,7 +186,10 @@ export function Programs(nav) {
 
       <!-- Hero -->
       <div class="idea-hero">
-        <div class="idea-hero-emoji-bg">${esc(p.emoji || DEFAULT_EMOJI)}</div>
+        ${p.photos && p.photos.length
+          ? `<img data-media="${p.photos[0].id}" alt="${esc(p.title)}" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:.7">`
+          : `<div class="idea-hero-emoji-bg">${esc(p.emoji || DEFAULT_EMOJI)}</div>`
+        }
         <div class="idea-hero-overlay"></div>
         <div class="idea-hero-content">
           <h1 class="idea-hero-title">${esc(p.title)}</h1>
@@ -256,6 +292,9 @@ export function Programs(nav) {
         showList();
       }
     };
+
+    // Charger les photos du hero
+    media.hydrate(panel);
   }
 
   // ══════════════════════════════════════════════════════════════════════
@@ -269,6 +308,7 @@ export function Programs(nav) {
     let programme  = p && p.programme    ? p.programme.map(d => ({ day: d.day, items: [...(d.items||[])] })) : [];
     let budget     = p && p.budgetDetail ? p.budgetDetail.map(l => ({ ...l })) : [];
     let hebergs    = p && p.hebergements ? p.hebergements.map(h => ({ ...h })) : [];
+    let photos     = p && p.photos       ? [...p.photos] : [];
 
     // Conteneur principal (plein écran dans le panel liste)
     const panel = el.querySelector('#prog-panel-list');
@@ -277,7 +317,7 @@ export function Programs(nav) {
 
     // On remplace le contenu du panel liste par le formulaire
     panel.innerHTML = `
-      <div style="max-width:720px;margin:0 auto;padding-bottom:60px">
+      <div style="max-width:720px;margin:0 auto;padding-bottom:80px">
 
         <div class="section-head" style="margin-top:0">
           <button class="btn ghost" id="pf-cancel">${icon('arrow-left')} Annuler</button>
@@ -326,6 +366,12 @@ export function Programs(nav) {
           </div>
         </div>
 
+        <!-- Photos -->
+        <div class="card" style="margin-bottom:18px">
+          <h4 style="margin:0 0 14px;font-size:1rem">${icon('camera')} Photos</h4>
+          <div id="pf-photos"></div>
+        </div>
+
         <!-- Programme jour par jour -->
         <div class="card" style="margin-bottom:18px">
           <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px">
@@ -355,13 +401,18 @@ export function Programs(nav) {
         </div>
 
         <!-- Notes -->
-        <div class="card">
+        <div class="card" style="margin-bottom:18px">
           <div class="field" style="margin:0">
             <label>Notes pratiques</label>
             <textarea id="pf-notes" rows="4" placeholder="Meilleure période, conseils d'accès, infos chien…">${esc(p?.notes||'')}</textarea>
           </div>
         </div>
 
+      </div>
+
+      <!-- Bouton fixe en bas pour tablette / mobile -->
+      <div class="prog-save-bar">
+        <button class="btn primary prog-save-bar-btn" id="pf-save-bottom">${icon('check')} Enregistrer le programme</button>
       </div>`;
 
     // ── Render dynamique des jours ──
@@ -478,6 +529,9 @@ export function Programs(nav) {
     renderBudget();
     renderHebergs();
 
+    // Initialiser le gestionnaire de photos
+    photoUploader(panel.querySelector('#pf-photos'), photos);
+
     // ── Événements fixes ──
     panel.querySelector('#pf-cancel').onclick = () => {
       if (isEdit) { showDetail(id); } else { showList(); }
@@ -519,6 +573,7 @@ export function Programs(nav) {
         budgetTotal,
         chienOk     : panel.querySelector('#pf-chien').checked,
         description : panel.querySelector('#pf-desc').value.trim(),
+        photos,
         programme   : cleanProgramme,
         budgetDetail: cleanBudget,
         hebergements: cleanHebergs,
@@ -535,6 +590,10 @@ export function Programs(nav) {
         showDetail(newProg.id);
       }
     };
+
+    // Bouton fixe en bas (tablette / mobile) — même action que pf-save
+    panel.querySelector('#pf-save-bottom').onclick =
+      () => panel.querySelector('#pf-save').click();
   }
 
   // ══════════════════════════════════════════════════════════════════════
