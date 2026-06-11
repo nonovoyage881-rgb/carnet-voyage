@@ -229,7 +229,10 @@ export function Programs(nav) {
               <div class="tl-item future">
                 <div class="idea-tl-day-label">${esc(day.day)}</div>
                 ${(day.items || []).map(it => `
-                  <div class="idea-tl-item-row">${icon('star')} ${esc(it.label)}</div>`).join('')}
+                  <div class="idea-tl-item-row" style="flex-direction:column;align-items:flex-start;gap:3px">
+                    <div style="display:flex;align-items:center;gap:7px">${icon('star')} ${esc(it.label)}</div>
+                    ${it.notes ? `<div style="font-size:.78rem;color:var(--ink-faint);padding-left:21px;line-height:1.5">${esc(it.notes)}</div>` : ''}
+                  </div>`).join('')}
               </div>`).join('')}
           </div>
         </div>` : ''}
@@ -432,11 +435,16 @@ export function Programs(nav) {
           </div>
           <div class="pf-items-host" data-di="${di}">
             ${(day.items||[]).map((it, ii) => `
-              <div style="display:flex;align-items:center;gap:7px;margin-bottom:6px">
-                <input class="pf-item-label" data-di="${di}" data-ii="${ii}" value="${esc(it.label)}"
-                  style="flex:1;border:1px solid var(--border);background:var(--surface);border-radius:var(--r-sm);padding:6px 10px;font-size:.85rem"
-                  placeholder="Activité ou étape…">
-                <button class="btn sm ghost pf-del-item" data-di="${di}" data-ii="${ii}">${icon('x')}</button>
+              <div style="margin-bottom:8px">
+                <div style="display:flex;align-items:center;gap:7px;margin-bottom:3px">
+                  <input class="pf-item-label" data-di="${di}" data-ii="${ii}" value="${esc(it.label)}"
+                    style="flex:1;border:1px solid var(--border);background:var(--surface);border-radius:var(--r-sm);padding:6px 10px;font-size:.85rem"
+                    placeholder="Activité ou étape…">
+                  <button class="btn sm ghost pf-del-item" data-di="${di}" data-ii="${ii}">${icon('x')}</button>
+                </div>
+                <textarea class="pf-item-notes" data-di="${di}" data-ii="${ii}" rows="2"
+                  style="width:100%;border:1px solid var(--border);background:var(--surface-2);border-radius:var(--r-sm);padding:5px 10px;font-size:.8rem;resize:vertical;font-family:inherit;color:var(--ink-soft)"
+                  placeholder="Notes, infos pratiques, lien… (optionnel)">${esc(it.notes||'')}</textarea>
               </div>`).join('')}
           </div>
           <button class="btn sm ghost pf-add-item" data-di="${di}" style="margin-top:4px">${icon('plus')} Activité</button>
@@ -449,6 +457,12 @@ export function Programs(nav) {
         inp.oninput = e => {
           const { di, ii } = e.target.dataset;
           programme[+di].items[+ii].label = e.target.value;
+        });
+
+      host.querySelectorAll('.pf-item-notes').forEach(inp =>
+        inp.oninput = e => {
+          const { di, ii } = e.target.dataset;
+          programme[+di].items[+ii].notes = e.target.value;
         });
 
       host.querySelectorAll('.pf-del-day').forEach(b =>
