@@ -144,6 +144,7 @@ export function Programs(nav) {
         showDetail(c.dataset.id);
       };
     });
+    media.hydrate(panel);
   }
 
   // HTML d'une carte programme
@@ -153,7 +154,9 @@ export function Programs(nav) {
     const linked = linkedTripExists(p);
     return `
       <div class="disc-card card hoverable" data-id="${p.id}">
-        <div class="cover">${esc(p.emoji || DEFAULT_EMOJI)}</div>
+        <div class="cover" ${p.photos && p.photos[0] ? `data-media="${p.photos[0].id}"` : ''}>
+          ${p.photos && p.photos[0] ? '' : esc(p.emoji || DEFAULT_EMOJI)}
+        </div>
         <h3 style="margin:10px 0 3px">${esc(p.title)}</h3>
         <small style="color:var(--ink-faint)">${icon('pin')} ${esc(p.destination || 'Destination libre')}</small>
         <div class="tagrow" style="margin-top:8px;flex-wrap:wrap;gap:5px">
