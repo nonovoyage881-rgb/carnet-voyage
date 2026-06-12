@@ -119,23 +119,32 @@ export function Programs(nav) {
     const programs = store.list('programs');
 
     panel.innerHTML = `
-      <div class="hero">
-        <div class="kicker">Modèles de voyage</div>
-        <h2>Programmes</h2>
-        <p>Des séjours structurés jour par jour, prêts à transformer en voyage réel.</p>
-      </div>
+      <div class="prog-showcase">
+        ${programs.length
+          ? `<div class="prog-showcase-grid" id="prog-grid">${programs.map((p, i) => progCardHTML(p, i)).join('')}</div>`
+          : `<div id="prog-grid" class="prog-empty-shell">${empty('🗺️', 'Aucun programme pour l\'instant', 'Créez votre premier modèle de voyage.')}</div>`
+        }
 
-      <div class="section-head" style="margin-top:0">
-        <h3>Tous les programmes</h3>
-        <span class="tag">${programs.length}</span>
-        <div class="spacer"></div>
-        <button class="btn primary" id="prog-new">${icon('plus')} Nouveau programme</button>
-      </div>
+        <div class="prog-benefits" aria-label="Avantages des programmes">
+          <div class="prog-benefit">
+            <div class="prog-benefit-icon">${icon('star')}</div>
+            <h4>Engagement Éco</h4>
+            <p>100% de nos programmes favorisent le tourisme local et durable.</p>
+          </div>
+          <div class="prog-benefit">
+            <div class="prog-benefit-icon">${icon('map')}</div>
+            <h4>Parcours sur mesure</h4>
+            <p>Personnalisez chaque étape selon vos envies et votre rythme.</p>
+          </div>
+          <div class="prog-benefit">
+            <div class="prog-benefit-icon">${icon('camera')}</div>
+            <h4>Points de vue</h4>
+            <p>Plus de 45 spots photos iconiques répertoriés dans vos itinéraires.</p>
+          </div>
+        </div>
 
-      ${programs.length
-        ? `<div class="prog-grid" id="prog-grid">${programs.map(progCardHTML).join('')}</div>`
-        : `<div id="prog-grid">${empty('🗺️', 'Aucun programme pour l\'instant', 'Créez votre premier modèle de voyage.')}</div>`
-      }`;
+        <button class="prog-fab" id="prog-new" aria-label="Nouveau programme" title="Nouveau programme">${icon('plus')}</button>
+      </div>`;
 
     panel.querySelector('#prog-new').onclick = () => progForm(null, showList, showDetail);
     panel.querySelectorAll('[data-id]').forEach(c => {
@@ -147,26 +156,57 @@ export function Programs(nav) {
     media.hydrate(panel);
   }
 
+  // Helpers purement visuels pour la carte : aucune donnée n'est modifiée.
+  function progDurationLabel(p) {
+    const raw = (p.duree || '').toString().trim();
+    return raw ? raw.toUpperCase() : 'PROGRAMME';
+  }
+
+  function progTags(p, total, items, linked) {
+    const custom = Array.isArray(p.tags) ? p.tags
+      : Array.isArray(p.themes) ? p.themes
+      : Array.isArray(p.categories) ? p.categories
+      : [];
+    const tags = custom.map(t => String(t).trim()).filter(Boolean);
+
+    if (!tags.length) {
+      if (items > 0) tags.push('Itinéraire');
+      if (p.chienOk) tags.push('Animaux');
+      if (total > 0) tags.push('Budget');
+      if (linked) tags.push('Utilisé');
+      if (!tags.length) tags.push('Voyage');
+    }
+    return tags.slice(0, 3);
+  }
+
   // HTML d'une carte programme
-  function progCardHTML(p) {
+  function progCardHTML(p, index = 0) {
     const total = calcTotal(p);
     const items = countItems(p);
     const linked = linkedTripExists(p);
+    const tags = progTags(p, total, items, linked);
+    const description = (p.description || '').trim()
+      || (items > 0
+        ? `${items} activité${items>1?'s':''} planifiée${items>1?'s':''} pour composer votre itinéraire.`
+        : 'Un itinéraire authentique à personnaliser selon vos envies, votre budget et votre rythme.');
+
     return `
-      <div class="disc-card card hoverable" data-id="${p.id}">
-        <div class="cover" ${p.photos && p.photos[0] ? `data-media="${p.photos[0].id}"` : ''}>
-          ${p.photos && p.photos[0] ? '' : esc(p.emoji || DEFAULT_EMOJI)}
+      <article class="prog-travel-card" data-id="${p.id}">
+        <div class="prog-card-cover prog-card-cover--${index % 2 ? 'mountain' : 'valley'}" ${p.photos && p.photos[0] ? `data-media="${p.photos[0].id}"` : ''}>
+          ${p.photos && p.photos[0] ? '' : `<span class="prog-card-emoji">${esc(p.emoji || DEFAULT_EMOJI)}</span>`}
+          <div class="prog-card-shine"></div>
+          <span class="prog-duration-badge">${icon('calendar')} ${esc(progDurationLabel(p))}</span>
         </div>
-        <h3 style="margin:10px 0 3px">${esc(p.title)}</h3>
-        <small style="color:var(--ink-faint)">${icon('pin')} ${esc(p.destination || 'Destination libre')}</small>
-        <div class="tagrow" style="margin-top:8px;flex-wrap:wrap;gap:5px">
-          ${p.duree   ? `<span class="tag">${icon('clock')} ${esc(p.duree)}</span>` : ''}
-          ${total > 0 ? `<span class="tag">${icon('euro')} ${fmtMoney(total)}</span>` : ''}
-          ${p.chienOk ? `<span class="tag sage">${icon('paw')} Chien OK</span>` : ''}
-          ${linked    ? `<span class="tag sky">✓ Utilisé</span>` : ''}
+        <div class="prog-card-body">
+          <span class="prog-card-open" aria-hidden="true">↗</span>
+          <h3 class="prog-card-title">${esc(p.title)}</h3>
+          <div class="prog-card-place">${icon('map-pin')} ${esc((p.destination || 'Destination libre').toUpperCase())}</div>
+          <p class="prog-card-desc">${esc(description)}</p>
+          <div class="prog-card-tags">
+            ${tags.map(t => `<span>${esc(String(t).toUpperCase())}</span>`).join('')}
+          </div>
         </div>
-        ${items > 0 ? `<div style="font-size:.75rem;color:var(--ink-faint);margin-top:7px">${items} activité${items>1?'s':''} planifiée${items>1?'s':''}</div>` : ''}
-      </div>`;
+      </article>`;
   }
 
   // ══════════════════════════════════════════════════════════════════════
