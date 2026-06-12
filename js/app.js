@@ -4,6 +4,7 @@
 import { store } from './store.js';
 import { icon, esc } from './lib/ui.js';
 import { media } from './lib/media.js';
+import { assignTripToCurrentUser, ownerMiniLineHTML } from './lib/tripOwners.js';
 
 import { Dashboard }    from './views/dashboard.js';
 import { Discover }     from './views/discover.js';
@@ -128,7 +129,7 @@ function tripSelectorHTML() {
       <div class="trip-menu-head">Voyage actif</div>
       ${trips.length ? trips.map(t => `<button class="trip-opt ${active && t.id === active.id ? 'on' : ''}" data-trip="${t.id}">
         <span class="to-cover">${esc(t.cover || '🧭')}</span>
-        <span class="to-name">${esc(t.title)}<small>${esc(t.destination || '')}</small></span>
+        <span class="to-name">${esc(t.title)}<small>${esc(t.destination || '')}${ownerMiniLineHTML(t)}</small></span>
         ${active && t.id === active.id ? icon('check') : ''}</button>`).join('')
         : '<div class="trip-empty">Aucun voyage pour l\'instant</div>'}
       <button class="trip-opt new" id="tripNew">${icon('plus')} Nouveau voyage</button>
@@ -184,11 +185,15 @@ function renderShell() {
   };
   document.getElementById('who').onclick = async () => {
     store.setting('me', '');
+    store.setting('memberId', '');
+    store.setting('myRole', '');
     if (store.mode === 'firebase') { await store.signOutFb(); } else boot();
   };
   document.getElementById('signout').onclick = async (e) => {
     e.preventDefault();
     store.setting('me', '');
+    store.setting('memberId', '');
+    store.setting('myRole', '');
     if (store.mode === 'firebase') { await store.signOutFb(); } else boot();
   };
 
@@ -201,6 +206,7 @@ function renderShell() {
     tripBtn.onclick = (e) => { e.stopPropagation(); const m = document.getElementById('tripMenu'); m.hidden = !m.hidden; };
     document.getElementById('tripMenu').onclick = (e) => e.stopPropagation();
     root.querySelectorAll('[data-trip]').forEach(b => b.onclick = () => {
+      assignTripToCurrentUser(b.dataset.trip);
       store.setting('activeTripId', b.dataset.trip);
       renderShell();
     });
@@ -240,6 +246,7 @@ function renderAuth() {
     b.onclick = () => {
       const m = store.doc('members', b.dataset.id);
       store.setting('me', m.name);
+      store.setting('memberId', m.id);
       store.setting('myRole', m.role);
       nav('dashboard');
     };
