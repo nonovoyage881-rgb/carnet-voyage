@@ -37,6 +37,7 @@
 import { store }  from '../store.js';
 import { icon, toast, fmtMoney, esc, sheet, confirmDialog, empty } from '../lib/ui.js';
 import { media }  from '../lib/media.js';
+import { currentOwnerPatch, ownerBadgeHTML } from '../lib/tripOwners.js';
 
 // ── Constantes métier (inchangées depuis v1) ──────────────────────────────
 const DUR      = ['Week-end', 'Court séjour (3-5 j)', '1 semaine', '2 semaines et +'];
@@ -804,6 +805,7 @@ export function Discover(nav) {
             Cette idée a déjà été transformée en voyage
             <strong>${esc(existingTrip.title)}</strong>.
           </p>
+          ${ownerBadgeHTML(existingTrip)}
           <p style="color:var(--ink-soft)">
             Voulez-vous ouvrir ce voyage ou en créer un nouveau ?
           </p>
@@ -879,6 +881,7 @@ export function Discover(nav) {
         lat:         46.6,
         lng:         2.4,
         photos:      [],
+        ...currentOwnerPatch(),
       });
 
       // 2. Créer les expenses si budgetDetail est renseigné (niveau mid)
