@@ -1,145 +1,154 @@
-// js/views/dashboard.js — Refonte visuelle "Premium Travel"
-// Données, calculs, navigation et mini-carte Leaflet identiques à la version précédente.
+// js/views/settings.js
 import { store } from '../store.js';
-import { icon, fmtMoney, fmtDate, fmtDateShort, daysUntil, esc } from '../lib/ui.js';
-import { media } from '../lib/media.js';
-import { ownerBadgeHTML, ownerMiniLineHTML } from '../lib/tripOwners.js';
+import { icon, modal, toast, confirmDialog, esc } from '../lib/ui.js';
+import { ownerMiniLineHTML } from '../lib/tripOwners.js';
 
-export function Dashboard(nav) {
+const ROLES = ['Administrateur','Parent','Enfant'];
+
+export function Settings(nav, applyTheme) {
   const el = document.createElement('div');
-  const trip = store.activeTrip();
-  const d = trip ? daysUntil(trip.start) : null;
 
-  const expenses = store.list('expenses').filter(e => e.tripId === trip?.id);
-  const spent = expenses.reduce((s,e)=>s+Number(e.amount||0),0);
-  const remaining = (trip?.budget||0) - spent;
-  const spentPct = trip?.budget ? Math.min(100, Math.round(spent / trip.budget * 100)) : 0;
+  function daysUntil(str) {
+    if (!str) return null;
+    const d = new Date(str); if (isNaN(d)) return null;
+    d.setHours(0,0,0,0);
+    const t = new Date(); t.setHours(0,0,0,0);
+    return Math.round((d - t) / 86400000);
+  }
 
-  const recentActs = store.list('activities').filter(a=>a.tripId===trip?.id).slice(-3).reverse();
-  const upcomingRes = store.list('reservations')
-    .filter(r => (!r.tripId || r.tripId === trip?.id))
-    .sort((a,b)=>(a.arrDate||'').localeCompare(b.arrDate||''))
-    .filter(r => r.arrDate).slice(0,3);
-  const weather = store.setting('weather') || { temp:22, label:'Ensoleillé', emoji:'☀️' };
+  function buildReminderPreview() {
+    const lines = [];
+    store.list('trips').filter(t => t.status === 'futur').forEach(t => {
+      const d = daysUntil(t.start);
+      if (d !== null && d >= 0 && d <= 9)
+        lines.push(`<div style="font-size:.85rem;color:var(--ink-soft)">🧳 <b>${esc(t.title)}</b>${ownerMiniLineHTML(t)} — départ dans ${d} jour${d>1?'s':''}</div>`);
+    });
+    store.list('reservations').forEach(r => {
+      const d = daysUntil(r.arrDate);
+      if (d !== null && d >= 0 && d <= 4)
+        lines.push(`<div style="font-size:.85rem;color:var(--ink-soft)">🎫 <b>${esc(r.name||r.type)}</b> — dans ${d} jour${d>1?'s':''}</div>`);
+    });
+    return lines.length ? lines.join('') : '<div style="font-size:.85rem;color:var(--ink-faint)">Aucun événement proche pour l\'instant.</div>';
+  }
 
-  const placesCount = store.list('places').filter(p=>p.tripId===trip?.id).length;
-  const coverPhoto = trip?.photos && trip.photos[0];
-  const kicker = trip?.status==='futur' ? 'Prochain voyage' : trip?.status==='encours' ? 'Voyage en cours' : 'Carnet de voyage';
+  function render() {
+    const members = store.list('members');
+    const memberId = store.setting('memberId');
+    const currentMember = (memberId && store.doc('members', memberId)) || members.find(m => m.name === store.setting('me')) || members[0];
+    const me = currentMember?.name;
+    const theme = store.setting('theme') || 'light';
+    const family = store.setting('family') || 'Ma famille';
+    const remindersOn = !!store.setting('remindersEnabled');
 
-  el.innerHTML = `
-    <div class="hero${coverPhoto ? ' has-photo' : ''}">
-      ${coverPhoto ? `<img class="hero-photo" data-media="${coverPhoto.id}" alt="">` : ''}
-      ${coverPhoto ? `<div class="hero-overlay"></div>` : ''}
-      <div class="hero-content">
-        <div>
-          <div class="kicker">${esc(kicker)}</div>
-          <h2>${esc(trip?.title||'Aucun voyage')}</h2>
-          ${!trip ? `<p>Créez votre premier voyage pour démarrer.</p>` : ''}
-          <div class="chips">
-            ${d!=null?`<span>${icon('clock')} J−${d} avant le départ</span>`:''}
-            <span>${icon('globe')} ${esc(trip?.destination||'—')}</span>
-            <span>${icon('calendar')} ${fmtDateShort(trip?.start)} → ${fmtDateShort(trip?.end)}</span>
-            ${trip ? `<span>👤 ${ownerMiniLineHTML(trip).replace(' · 👤 ', '') || 'Non attribué'}</span>` : ''}
-          </div>
-          ${trip ? ownerBadgeHTML(trip) : ''}
-        </div>
-        ${trip ? `<a class="hero-cta" data-go="trips">Voir les détails</a>` : ''}
-      </div>
-    </div>
+    el.innerHTML = `
+      <div class="section-head"><h3>⚙️ Paramètres</h3></div>
 
-    <div class="grid g-4">
-      <div class="card stat hoverable" data-go="trips">
-        <div class="topline">
-          <div class="stat-ic">${icon('clock')}</div>
-        </div>
-        <div class="value">${d!=null? (d>=0?`${d}`:'•') : '—'}<small>${d!=null&&d>=0?' jours':''}</small></div>
-        <div class="label">Avant le départ</div>
-        <div class="sub">Début : ${fmtDate(trip?.start)}</div>
-      </div>
-
-      <div class="card stat hoverable" style="position:relative;overflow:hidden" data-go="map">
-        <div class="bento-decor">${icon('map')}</div>
-        <div class="stat-ic">${icon('compass')}</div>
-        <div class="value sm" style="font-size:1.6rem">${esc(trip?.destination||'—')}</div>
-        <div class="sub">${esc(trip?.title||'')}${trip ? ownerMiniLineHTML(trip) : ''}</div>
-        <div class="map-tag">${icon('pin')} ${placesCount} point${placesCount===1?'':'s'} sur la carte</div>
-      </div>
-
-      <div class="card stat hoverable" data-go="budget">
-        <div class="topline">
-          <div class="stat-ic">${icon('wallet')}</div>
-          <div class="right">
-            <span class="lbl">Budget total</span>
-            <span class="val">${fmtMoney(trip?.budget||0)}</span>
-          </div>
-        </div>
-        <div class="value" style="color:${remaining<0?'var(--danger)':'var(--ink)'}">${fmtMoney(remaining)}<small> restants</small></div>
-        <div class="progress" style="margin-top:12px"><span style="width:${spentPct}%"></span></div>
-        <div class="sub" style="text-align:right">Dépensé : ${fmtMoney(spent)} / ${fmtMoney(trip?.budget||0)}</div>
-      </div>
-
-      <div class="card stat hoverable" data-go="weather">
-        <div class="stat-ic">${icon('cloud')}</div>
-        <div class="value">${weather.temp}<small>°C</small></div>
-        <div class="label">${esc(weather.label)}</div>
-        <div class="sub">Aujourd'hui${trip?.destination ? ' · '+esc(trip.destination) : ''}</div>
-        <div class="weather-bars"><span class="on"></span><span class="on"></span><span></span></div>
-      </div>
-    </div>
-
-    <div class="grid g-2" style="margin-top:18px;align-items:start">
       <div class="card">
-        <div class="section-head" style="margin:0 0 14px"><h3>Dernières activités</h3><div class="spacer"></div>
-          <button class="btn sm ghost" data-go="activities">Voir tout</button></div>
-        <div class="list">
-          ${recentActs.length?recentActs.map(a=>`
-            <div class="act-row">
-              <div class="thumb">${a.photos && a.photos[0] ? `<img data-media="${a.photos[0].id}" alt="">` : icon('star')}</div>
-              <div class="body"><h5>${esc(a.title)}</h5><small>${icon('star')}${esc(a.cat)} · ${esc(a.status)}</small></div>
-              <div class="fav">${icon('heart')}</div>
-              ${a.pets?`<span class="tag sage">${icon('paw')}</span>`:''}
-            </div>`).join('') : '<p style="color:var(--ink-faint)">Aucune activité encore.</p>'}
+        <div class="field"><label>Nom de la famille</label><input id="fam" value="${esc(family)}"></div>
+        <div class="row">
+          <div class="field"><label>Profil actif (vous)</label>
+            <select id="me">${members.map(m=>`<option value="${esc(m.id)}" ${m.id===currentMember?.id?'selected':''}>${esc(m.name)}</option>`).join('')}</select></div>
+          <div class="field"><label>Thème</label>
+            <select id="theme"><option value="light" ${theme==='light'?'selected':''}>☀️ Clair</option><option value="dark" ${theme==='dark'?'selected':''}>🌙 Sombre</option></select></div>
         </div>
       </div>
 
-      <div class="card" style="display:flex;flex-direction:column">
-        <div class="section-head" style="margin:0 0 14px"><h3>Prochaines réservations</h3><div class="spacer"></div>
-          <button class="btn sm ghost" data-go="reservations">Ouvrir</button></div>
-        ${upcomingRes.length?`<div class="list">${upcomingRes.map(r=>`
-            <div class="act-row">
-              <div class="thumb">${icon(r.type==='Camping'?'tent':'ticket')}</div>
-              <div class="body"><h5>${esc(r.name||r.type)}</h5><small>${esc(r.type||'')} · ${fmtDateShort(r.arrDate)}</small></div>
-            </div>`).join('')}</div>` : `
-          <div class="empty-card">
-            <div class="circle">${icon('calendar')}</div>
-            <h4>Aucune réservation à venir</h4>
-            <p>Planifiez votre prochain séjour en ajoutant des hôtels, vols ou activités.</p>
-            <button class="btn-pill-outline" data-go="reservations">${icon('plus')} Ajouter une réservation</button>
-          </div>`}
+      <div class="section-head"><h3>🔔 Rappels à l'ouverture</h3></div>
+      <div class="card">
+        <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap">
+          <div style="flex:1;min-width:200px">
+            <b style="display:block;margin-bottom:4px">Rappels intelligents</b>
+            <p style="color:var(--ink-soft);font-size:.85rem;margin:0">
+              À chaque ouverture, l'app vérifie vos dates et affiche un bandeau
+              si un départ ou une réservation approche (J-7, J-1, jour J).
+              Les rappels s'affichent uniquement quand vous ouvrez l'application.
+            </p>
+          </div>
+          <label style="display:flex;align-items:center;gap:10px;cursor:pointer;flex-shrink:0">
+            <input type="checkbox" id="rem-toggle" ${remindersOn?'checked':''} style="width:20px;height:20px;accent-color:var(--sage-deep)">
+            <b>${remindersOn ? 'Activés' : 'Désactivés'}</b>
+          </label>
+        </div>
+        ${remindersOn ? `
+        <div style="margin-top:14px;padding-top:14px;border-top:1px solid var(--border)">
+          <b style="font-size:.82rem;color:var(--ink-faint);text-transform:uppercase;letter-spacing:.08em">Rappels programmés</b>
+          <div style="margin-top:8px;display:flex;flex-direction:column;gap:6px">
+            ${buildReminderPreview()}
+          </div>
+        </div>` : ''}
       </div>
-    </div>
 
-    <div class="section-head"><h3>Carte du voyage</h3><div class="spacer"></div>
-      <button class="btn sm sky" data-go="map">Ouvrir la carte</button></div>
-    <div id="mini-map" class="map card" style="height:300px;padding:0;overflow:hidden"></div>
-  `;
+      <div class="section-head"><h3>👨‍👩‍👧‍👦 Membres & rôles</h3><div class="spacer"></div>
+        <button class="btn primary invite">${icon('users')} Inviter par e-mail</button></div>
+      <div class="list">
+        ${members.map(m=>`<div class="item" data-id="${m.id}">
+          <div class="ic" style="background:${m.color};color:#fff">${esc(m.name[0])}</div>
+          <div class="body"><b>${esc(m.name)}</b><small>${esc(m.email||'—')}</small></div>
+          <select class="role" data-id="${m.id}" style="border:1px solid var(--border);border-radius:10px;padding:6px 10px;background:var(--surface-2)">
+            ${ROLES.map(r=>`<option ${m.role===r?'selected':''}>${r}</option>`).join('')}</select>
+          <div class="acts"><button class="icon-btn del">${icon('trash')}</button></div>
+        </div>`).join('')}
+      </div>
+      <p style="color:var(--ink-faint);font-size:.82rem;margin-top:8px">Avec le compte familial partagé, « inviter » consiste à transmettre le lien de l'app et les identifiants à vos proches : ils se connectent et voient aussitôt le carnet commun. Ajouter un membre ici crée simplement son profil (nom, rôle).</p>
 
-  el.querySelectorAll('[data-go]').forEach(b => b.onclick = () => nav(b.dataset.go));
+      <div class="section-head"><h3>💾 Données & sauvegarde</h3></div>
+      <div class="grid g-3">
+        <button class="card hoverable btn-card exp">${icon('download')}<b>Exporter (JSON)</b><small>Sauvegarde complète</small></button>
+        <button class="card hoverable btn-card imp">${icon('upload')}<b>Importer (JSON)</b><small>Restaurer une sauvegarde</small></button>
+        <button class="card hoverable btn-card reset" style="color:var(--danger)">${icon('trash')}<b>Réinitialiser</b><small>Revenir à la démo</small></button>
+      </div>
+      <input type="file" id="imp-file" accept=".json" hidden>
 
-  media.hydrate(el);
+      ${store.mode === 'firebase' ? `
+      <div class="card" style="margin-top:18px;border-left:5px solid var(--sage-deep)">
+        <b>${icon('users')} Synchronisation famille active</b>
+        <p style="color:var(--ink-soft);margin:6px 0 0">Toutes les données sont partagées en temps réel via le compte familial : ce que vous ajoutez apparaît sur les appareils de tous les membres connectés. L'app reste utilisable hors-ligne et se resynchronise au retour du réseau.</p>
+      </div>` : `
+      <div class="card" style="margin-top:18px;border-left:5px solid var(--sky-deep)">
+        <b>🔌 Mode local actif</b>
+        <p style="color:var(--ink-soft);margin:6px 0 0">Toutes les données sont stockées sur cet appareil et l'app fonctionne hors-ligne. Pour la synchronisation famille en temps réel, renseignez vos clés Firebase dans <code>js/config.js</code> (guide complet dans le <b>README</b>).</p>
+      </div>`}`;
 
-  // mini carte Leaflet
-  setTimeout(() => {
-    if (!window.L) return;
-    const places = store.list('places').filter(p=>p.tripId===trip?.id);
-    const center = trip ? [trip.lat, trip.lng] : [46.6, 2.2];
-    // BUG-13 : détruire l'instance Leaflet précédente si elle existe
-    const miniMapNode = document.getElementById('mini-map');
-    if (miniMapNode && miniMapNode._leaflet_id) { try { L.map(miniMapNode).remove(); } catch(e) {} }
-    const map = L.map('mini-map', { scrollWheelZoom:false }).setView(center, 8);
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution:'© OpenStreetMap', maxZoom:18 }).addTo(map);
-    places.forEach(p => L.marker([p.lat, p.lng]).addTo(map).bindPopup(`<b>${esc(p.name)}</b><br>${esc(p.cat)}`));
-  }, 80);
+    el.querySelector('#fam').onchange = e => { store.setting('family', e.target.value); toast('Enregistré'); };
+    el.querySelector('#me').onchange = e => { const m = store.doc('members', e.target.value); if (!m) return; store.setting('me', m.name); store.setting('memberId', m.id); store.setting('myRole', m.role); toast(`Bonjour ${m.name} 👋`); };
+    el.querySelector('#theme').onchange = e => { store.setting('theme', e.target.value); applyTheme(e.target.value); };
+    el.querySelector('#rem-toggle').onchange = e => {
+      store.setting('remindersEnabled', e.target.checked);
+      toast(e.target.checked ? '🔔 Rappels activés' : 'Rappels désactivés');
+      render();
+    };
+    el.querySelectorAll('.role').forEach(s=>s.onchange=()=>{ store.update('members',s.dataset.id,{role:s.value}); toast('Rôle mis à jour'); });
+    el.querySelectorAll('.item .del').forEach(b=>b.onclick=async()=>{ const id=b.closest('.item').dataset.id;
+      if(await confirmDialog('Retirer le membre','Retirer cette personne de la famille ?')){
+          // RISQUE-07 : lire le nom AVANT remove (après, doc() retourne null)
+          const removedName = store.doc('members', id)?.name;
+          store.remove('members',id);
+          if (removedName && store.setting('me') === removedName) { store.setting('me', ''); store.setting('memberId', ''); store.setting('myRole', ''); }
+          render(); }});
 
+    el.querySelector('.invite').onclick = async ()=>{ await modal({ title:'Inviter un membre', body:`<form>
+      <div class="field"><label>Prénom</label><input name="name"></div>
+      <div class="field"><label>E-mail</label><input name="email" type="email" placeholder="membre@famille.fr"></div>
+      <div class="field"><label>Rôle</label><select name="role">${ROLES.map(r=>`<option>${r}</option>`).join('')}</select></div></form>`,
+      okText:'Envoyer l\'invitation', onOk:(d)=>{ d.color=['#6e8a62','#6fa9cc','#cf8a6a','#e7b65a'][Math.floor(Math.random()*4)]; store.add('members',d); toast(`Invitation envoyée à ${d.email}`); }}); render(); };
+
+    el.querySelector('.exp').onclick = ()=>{ const blob=new Blob([store.export()],{type:'application/json'});
+      const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='carnet-voyage-sauvegarde.json'; a.click(); toast('Sauvegarde exportée'); };
+    el.querySelector('.imp').onclick = ()=>el.querySelector('#imp-file').click();
+    el.querySelector('#imp-file').onchange = async (ev)=>{ const f=ev.target.files[0]; if(!f) return; const fr=new FileReader();
+      fr.onload=async ()=>{ try{
+        // BUG-09 : en mode Firebase, confirmer avant d'écraser les données cloud de toute la famille
+        let syncCloud = false;
+        if (store.mode === 'firebase') {
+          const ok = await confirmDialog('Remplacer les données familiales',
+            'Cette sauvegarde va remplacer les données de tous les membres sur tous les appareils. Continuer ?');
+          if (!ok) return;
+          syncCloud = true;
+        }
+        store.import(fr.result, { syncCloud }); toast('Sauvegarde restaurée'); location.reload();
+      }catch{ toast('Fichier invalide','danger'); } }; fr.readAsText(f); };
+    el.querySelector('.reset').onclick = async ()=>{ if(await confirmDialog('Réinitialiser','Toutes vos données seront effacées et remplacées par la démo.')){ store.reset(); location.reload(); }};
+  }
+  render();
   return el;
 }
