@@ -77,6 +77,29 @@ function linkedTripExists(prog) {
   return !!store.doc('trips', prog.linkedTripId);
 }
 
+// Transforme les URL présentes dans les notes en liens cliquables,
+// tout en conservant l'échappement HTML pour éviter l'injection.
+function linkifyNotes(text = '') {
+  const raw = String(text || '');
+  const urlRe = /https?:\/\/[^\s<>"']+/g;
+  let html = '';
+  let last = 0;
+  let match;
+
+  while ((match = urlRe.exec(raw)) !== null) {
+    const url = match[0];
+    const trailing = (url.match(/[.,;:!?)]*$/) || [''])[0];
+    const cleanUrl = url.slice(0, url.length - trailing.length);
+
+    html += esc(raw.slice(last, match.index));
+    html += `<a class="prog-note-link" href="${esc(cleanUrl)}" target="_blank" rel="noopener noreferrer">${esc(cleanUrl)}</a>${esc(trailing)}`;
+    last = match.index + url.length;
+  }
+
+  html += esc(raw.slice(last));
+  return html.replace(/\n/g, '<br>');
+}
+
 // ══════════════════════════════════════════════════════════════════════════
 //  VUE PRINCIPALE
 // ══════════════════════════════════════════════════════════════════════════
@@ -273,7 +296,7 @@ export function Programs(nav) {
                 ${(day.items || []).map(it => `
                   <div class="idea-tl-item-row" style="flex-direction:column;align-items:flex-start;gap:3px">
                     <div style="display:flex;align-items:center;gap:7px">${icon('star')} ${esc(it.label)}</div>
-                    ${it.notes ? `<div style="font-size:.78rem;color:var(--ink-faint);padding-left:21px;line-height:1.5">${esc(it.notes)}</div>` : ''}
+                    ${it.notes ? `<div style="font-size:.78rem;color:var(--ink-faint);padding-left:21px;line-height:1.5">${linkifyNotes(it.notes)}</div>` : ''}
                   </div>`).join('')}
               </div>`).join('')}
           </div>
@@ -310,7 +333,7 @@ export function Programs(nav) {
         ${p.notes ? `
         <div class="idea-section">
           <div class="idea-section-head">${icon('edit')} Notes pratiques</div>
-          <p style="color:var(--ink-soft);line-height:1.7;background:var(--surface-2);border:1px solid var(--border);border-radius:var(--r);padding:14px 16px">${esc(p.notes)}</p>
+          <p style="color:var(--ink-soft);line-height:1.7;background:var(--surface-2);border:1px solid var(--border);border-radius:var(--r);padding:14px 16px">${linkifyNotes(p.notes)}</p>
         </div>` : ''}
 
         <!-- Actions bas de page -->
@@ -350,7 +373,7 @@ export function Programs(nav) {
     const isEdit = !!p;
 
     // Copies locales des listes dynamiques
-    let programme  = p && p.programme    ? p.programme.map(d => ({ day: d.day, items: [...(d.items||[])] })) : [];
+    let programme  = p && p.programme    ? p.programme.map(d => ({ day: d.day, items: (d.items || []).map(it => ({ ...it })) })) : [];
     let budget     = p && p.budgetDetail ? p.budgetDetail.map(l => ({ ...l })) : [];
     let hebergs    = p && p.hebergements ? p.hebergements.map(h => ({ ...h })) : [];
     let photos     = p && p.photos       ? [...p.photos] : [];
@@ -615,7 +638,17 @@ export function Programs(nav) {
       // Nettoyage : retirer les items/lignes vides
       const cleanProgramme = programme
         .filter(d => d.day.trim())
-        .map(d => ({ day: d.day.trim(), items: d.items.filter(it => it.label.trim()).map(it => ({ label: it.label.trim() })) }));
+        .map(d => ({
+          day: d.day.trim(),
+          items: (d.items || [])
+            .filter(it => (it.label || '').trim())
+            .map(it => {
+              const item = { label: it.label.trim() };
+              const notes = (it.notes || '').trim();
+              if (notes) item.notes = notes;
+              return item;
+            })
+        }));
       const cleanBudget = budget.filter(l => l.label.trim() || l.montant > 0);
       const cleanHebergs = hebergs.filter(h => h.nom.trim());
       const budgetTotal = cleanBudget.reduce((s, l) => s + (Number(l.montant)||0), 0)
