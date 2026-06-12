@@ -5,7 +5,7 @@
 //  -> évite de rester bloqué sur une ancienne version après une mise à jour.
 //  À chaque déploiement modifiant le SW, on incrémente CACHE.
 // =====================================================================
-const CACHE = 'cvs-v12';
+const CACHE = 'cvs-v13';
 
 const SHELL = [
   './',
@@ -21,8 +21,12 @@ const SHELL = [
   './js/lib/media.js',
   './js/lib/geo.js',
   './js/lib/reminders.js',
+  './js/lib/tripOwners.js',
+  './tripOwners.js',
+  './js/tripOwners.js',
   './js/views/dashboard.js',
   './js/views/discover.js',
+  './js/views/programs.js',
   './js/views/gallery.js',
   './js/views/reservations.js',
   './js/views/activities.js',
