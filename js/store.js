@@ -12,7 +12,7 @@ const DEVICE_KEY = 'cvs_device_v1'; // réglages propres à l'appareil (les 2 mo
 const listeners = new Set();
 
 // Réglages qui restent TOUJOURS propres à l'appareil, jamais partagés :
-const LOCAL_SETTINGS = ['me', 'theme', 'myRole', 'activeTripId'];
+const LOCAL_SETTINGS = ['me', 'memberId', 'theme', 'myRole', 'activeTripId'];
 
 // Collections synchronisées (déduites du jeu de démo + extras connus)
 const COLLECTIONS = Array.from(new Set([
