@@ -166,11 +166,23 @@ export function Discover(nav) {
   function paintList() {
     const panel = el.querySelector('#idea-panel-list');
     if (!panel) return;
+
+    // Image du bandeau : on réutilise la première photo déjà enregistrée
+    // dans les idées de voyage. Si aucune photo n'existe, le fond premium
+    // d'origine reste affiché.
+    const heroIdea  = store.list('ideas').find(i => i.photos && i.photos[0]);
+    const heroPhoto = heroIdea && heroIdea.photos ? heroIdea.photos[0] : null;
+
     panel.innerHTML = `
-      <div class="hero">
-        <div class="kicker">Inspiration</div>
-        <h2>Découverte</h2>
-        <p>Notez vos envies de voyage et vos campings préférés pour préparer sereinement vos prochaines aventures.</p>
+      <div class="hero${heroPhoto ? ' has-photo' : ''}">
+        ${heroPhoto ? `<img class="hero-photo" data-media="${heroPhoto.id}" alt=""><div class="hero-overlay"></div>` : ''}
+        <div class="hero-content">
+          <div>
+            <div class="kicker">Inspiration</div>
+            <h2>Découverte</h2>
+            <p>Notez vos envies de voyage et vos campings préférés pour préparer sereinement vos prochaines aventures.</p>
+          </div>
+        </div>
       </div>
       <div class="seg" style="max-width:420px">
         <button class="${tab === 'ideas' ? 'on' : ''}" data-t="ideas">Idées de voyage</button>
@@ -180,6 +192,7 @@ export function Discover(nav) {
     panel.querySelectorAll('.seg button').forEach(b => b.onclick = () => { tab = b.dataset.t; paintList(); });
     if (tab === 'ideas') paintIdeas(panel.querySelector('#disc-tab-body'));
     else                 renderCamps(panel.querySelector('#disc-tab-body'));
+    media.hydrate(panel);
   }
 
   // ── Vue galerie des idées ────────────────────────────────────────────
@@ -323,7 +336,8 @@ export function Discover(nav) {
     const budDetail  = i.budgetDetail;                    // peut être absent
     const bud        = budDetail ? budDetail[activeBudgetTab] || budDetail.mid : null;
     const hasDog     = i.dogPolicy && i.dogPolicy !== 'no';
-    const coverAttr  = i.photos && i.photos[0] ? `data-media="${i.photos[0].id}"` : '';
+    const coverPhoto = i.photos && i.photos[0] ? i.photos[0] : null;
+    const coverAttr  = coverPhoto ? `data-media="${coverPhoto.id}"` : '';
 
     panel.innerHTML = `
       <!-- ── Barre de navigation sticky ── -->
@@ -339,8 +353,11 @@ export function Discover(nav) {
       </div>
 
       <!-- ── Hero ── -->
-      <div class="idea-hero">
-
+      <div class="idea-hero${coverPhoto ? ' has-photo' : ''}">
+        ${coverPhoto
+          ? `<img data-media="${coverPhoto.id}" alt="${esc(i.title)}" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:.72">`
+          : `<div class="idea-hero-emoji-bg">${esc(i.emoji || '🧭')}</div>`
+        }
         <div class="idea-hero-overlay"></div>
         <div class="idea-hero-content">
           <h1 class="idea-hero-title">
