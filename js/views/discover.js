@@ -129,6 +129,29 @@ export function Discover(nav) {
   let detailId    = null;
   let activeFilter = 'all';
   let activeBudgetTab = 'mid'; // onglet budget actif dans le détail
+  let heroSlideshowTimer = null;
+
+  function stopHeroSlideshow() {
+    if (heroSlideshowTimer) {
+      clearInterval(heroSlideshowTimer);
+      heroSlideshowTimer = null;
+    }
+  }
+
+  function startHeroSlideshow(root, selector) {
+    stopHeroSlideshow();
+    const slides = Array.from(root.querySelectorAll(selector));
+    if (slides.length < 2) return;
+
+    let index = 0;
+    heroSlideshowTimer = setInterval(() => {
+      if (!root.isConnected) { stopHeroSlideshow(); return; }
+      index = (index + 1) % slides.length;
+      slides.forEach((slide, i) => {
+        slide.style.opacity = i === index ? (slide.dataset.opacity || '1') : '0';
+      });
+    }, 4500);
+  }
 
   // ── Rendu racine ─────────────────────────────────────────────────────────
   function render() {
@@ -167,15 +190,23 @@ export function Discover(nav) {
     const panel = el.querySelector('#idea-panel-list');
     if (!panel) return;
 
-    // Image du bandeau : on réutilise la première photo déjà enregistrée
-    // dans les idées de voyage. Si aucune photo n'existe, le fond premium
-    // d'origine reste affiché.
-    const heroIdea  = store.list('ideas').find(i => i.photos && i.photos[0]);
-    const heroPhoto = heroIdea && heroIdea.photos ? heroIdea.photos[0] : null;
+    // Images du bandeau : on réutilise toutes les photos déjà enregistrées
+    // dans les idées de voyage. Elles défilent automatiquement. Si aucune photo
+    // n'existe, le fond premium d'origine reste affiché.
+    const heroPhotos = store.list('ideas')
+      .flatMap(i => i.photos || [])
+      .filter(Boolean)
+      .slice(0, 12);
 
     panel.innerHTML = `
-      <div class="hero${heroPhoto ? ' has-photo' : ''}">
-        ${heroPhoto ? `<img class="hero-photo" data-media="${heroPhoto.id}" alt=""><div class="hero-overlay"></div>` : ''}
+      <div class="hero${heroPhotos.length ? ' has-photo' : ''}">
+        ${heroPhotos.length ? `${heroPhotos.map((photo, index) => `
+          <img class="hero-photo discover-hero-slide"
+               data-media="${photo.id}"
+               data-opacity="1"
+               alt=""
+               style="opacity:${index === 0 ? '1' : '0'};transition:opacity 1s var(--ease);">
+        `).join('')}<div class="hero-overlay"></div>` : ''}
         <div class="hero-content">
           <div>
             <div class="kicker">Inspiration</div>
@@ -193,6 +224,7 @@ export function Discover(nav) {
     if (tab === 'ideas') paintIdeas(panel.querySelector('#disc-tab-body'));
     else                 renderCamps(panel.querySelector('#disc-tab-body'));
     media.hydrate(panel);
+    startHeroSlideshow(panel, '.discover-hero-slide');
   }
 
   // ── Vue galerie des idées ────────────────────────────────────────────
@@ -336,8 +368,9 @@ export function Discover(nav) {
     const budDetail  = i.budgetDetail;                    // peut être absent
     const bud        = budDetail ? budDetail[activeBudgetTab] || budDetail.mid : null;
     const hasDog     = i.dogPolicy && i.dogPolicy !== 'no';
-    const coverPhoto = i.photos && i.photos[0] ? i.photos[0] : null;
-    const coverAttr  = coverPhoto ? `data-media="${coverPhoto.id}"` : '';
+    const coverPhotos = i.photos && i.photos.length ? i.photos.filter(Boolean) : [];
+    const coverPhoto  = coverPhotos[0] || null;
+    const coverAttr   = coverPhoto ? `data-media="${coverPhoto.id}"` : '';
 
     panel.innerHTML = `
       <!-- ── Barre de navigation sticky ── -->
@@ -353,9 +386,13 @@ export function Discover(nav) {
       </div>
 
       <!-- ── Hero ── -->
-      <div class="idea-hero${coverPhoto ? ' has-photo' : ''}">
-        ${coverPhoto
-          ? `<img data-media="${coverPhoto.id}" alt="${esc(i.title)}" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:.72">`
+      <div class="idea-hero${coverPhotos.length ? ' has-photo' : ''}">
+        ${coverPhotos.length
+          ? coverPhotos.map((photo, index) => `<img class="discover-detail-slide"
+              data-media="${photo.id}"
+              data-opacity=".72"
+              alt="${esc(i.title)}"
+              style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:${index === 0 ? '.72' : '0'};transition:opacity 1s var(--ease)">`).join('')
           : `<div class="idea-hero-emoji-bg">${esc(i.emoji || '🧭')}</div>`
         }
         <div class="idea-hero-overlay"></div>
@@ -536,6 +573,7 @@ export function Discover(nav) {
 
     // Hydrate les photos du hero si présentes
     media.hydrate(panel);
+    startHeroSlideshow(panel, '.discover-detail-slide');
 
     // ── Événements détail ──────────────────────────────────────────────
     panel.querySelector('#idea-back-btn').onclick   = () => showList();
