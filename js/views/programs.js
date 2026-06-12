@@ -193,7 +193,6 @@ export function Programs(nav) {
     return `
       <article class="prog-travel-card" data-id="${p.id}">
         <div class="prog-card-cover prog-card-cover--${index % 2 ? 'mountain' : 'valley'}" ${p.photos && p.photos[0] ? `data-media="${p.photos[0].id}"` : ''}>
-          ${p.photos && p.photos[0] ? '' : `<span class="prog-card-emoji">${esc(p.emoji || DEFAULT_EMOJI)}</span>`}
           <div class="prog-card-shine"></div>
           <span class="prog-duration-badge">${icon('calendar')} ${esc(progDurationLabel(p))}</span>
         </div>
