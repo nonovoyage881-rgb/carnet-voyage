@@ -2,6 +2,7 @@
 import { store } from '../store.js';
 import { icon, modal, toast, confirmDialog, fmtDate, daysUntil, esc, sheet } from '../lib/ui.js';
 import { media } from '../lib/media.js';
+import { currentOwnerPatch, assignTripToCurrentUser, ownerBadgeHTML, ownerMiniLineHTML } from '../lib/tripOwners.js';
 
 const STATUS = { futur:{l:'Futur',c:'sky'}, encours:{l:'En cours',c:'warn'}, passe:{l:'Passé',c:''} };
 
@@ -54,7 +55,7 @@ export function Trips(nav) {
       const title = g('title').trim(); if (!title) { toast('Indiquez un titre', 'warn'); return false; }
       const d = { title, cover: g('cover'), destination: g('destination'), status: g('status'),
         start: g('start'), end: g('end'), budget: +g('budget')||0, lat: +g('lat')||46.6, lng: +g('lng')||2.4,
-        notes: g('notes'), photos };
+        notes: g('notes'), photos, ...(isEdit ? {} : currentOwnerPatch()) };
       if (isEdit) store.update('trips', rec.id, d);
       else { const t = store.add('trips', d); store.setting('activeTripId', t.id); }
       toast(isEdit ? 'Modifié' : 'Voyage créé'); render();
@@ -73,7 +74,9 @@ export function Trips(nav) {
             ? `<img class="trip-thumb" data-media="${t.photos[0].id}" alt="">`
             : `<span class="trip-thumb emoji">${t.cover||'🧭'}</span>`}
           <div style="flex:1;min-width:0"><b style="font-size:1.05rem">${esc(t.title)}</b><br>
-            <small style="color:var(--ink-faint)">${icon('pin')} ${esc(t.destination)} · ${fmtDate(t.start)} → ${fmtDate(t.end)}</small></div>
+            <small style="color:var(--ink-faint)">${icon('pin')} ${esc(t.destination)} · ${fmtDate(t.start)} → ${fmtDate(t.end)}${ownerMiniLineHTML(t)}</small>
+            ${ownerBadgeHTML(t)}
+          </div>
           <span class="tag ${STATUS[t.status]?.c||''}">${STATUS[t.status]?.l||t.status}</span>
         </div>
         <p style="color:var(--ink-soft);font-size:.9rem;margin:10px 0">${esc(t.notes||'')}</p>
@@ -100,7 +103,7 @@ export function Trips(nav) {
         ${[...trips].sort((a,b)=>new Date(a.start)-new Date(b.start)).map(t=>`
           <div class="tl-item ${t.status==='encours'?'now':t.status==='futur'?'future':''}">
             <b>${esc(t.title)}</b> <span class="tag">${fmtDate(t.start)}</span>
-            <div><small style="color:var(--ink-faint)">${esc(t.destination)}${t.status==='futur'?` · J−${daysUntil(t.start)}`:''}</small></div>
+            <div><small style="color:var(--ink-faint)">${esc(t.destination)}${t.status==='futur'?` · J−${daysUntil(t.start)}`:''}${ownerMiniLineHTML(t)}</small></div>
           </div>`).join('')}
       </div>
 
@@ -115,7 +118,7 @@ export function Trips(nav) {
 
     el.querySelector('.add').onclick = ()=>form(null);
     el.querySelectorAll('.edit').forEach(b=>b.onclick=()=>form(store.doc('trips',b.dataset.id)));
-    el.querySelectorAll('.setact').forEach(b=>b.onclick=()=>{ store.setting('activeTripId',b.dataset.id); toast('Voyage actif mis à jour'); render(); });
+    el.querySelectorAll('.setact').forEach(b=>b.onclick=()=>{ const owner = assignTripToCurrentUser(b.dataset.id); store.setting('activeTripId',b.dataset.id); toast(owner?.ownerName ? `Voyage attribué à ${owner.ownerName}` : 'Voyage actif mis à jour'); render(); });
     el.querySelectorAll('.del').forEach(b=>b.onclick=async()=>{ if(await confirmDialog('Supprimer le voyage','Cette action est définitive.')){ const t=store.doc('trips',b.dataset.id); (t?.photos||[]).forEach(p=>media.remove(p.id)); store.remove('trips',b.dataset.id);
           // BUG-10 : supprimer toutes les données liées au voyage (évite les orphelins)
           const tid = b.dataset.id;
