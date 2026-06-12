@@ -1,6 +1,7 @@
 // js/views/exports.js
 import { store } from '../store.js';
 import { icon, toast, fmtMoney, fmtDate, esc } from '../lib/ui.js';
+import { ownerLabel, familyTripMessage, tripOwnerName } from '../lib/tripOwners.js';
 
 export function Exports() {
   const el = document.createElement('div');
@@ -8,7 +9,7 @@ export function Exports() {
 
   el.innerHTML = `
     <div class="section-head"><h3>📤 Exports</h3></div>
-    <p style="color:var(--ink-soft);margin:-4px 0 18px">Générez des documents à partager ou à conserver, pour le voyage actif : <b>${esc(trip?.title||'—')}</b>.</p>
+    <p style="color:var(--ink-soft);margin:-4px 0 18px">Générez des documents à partager ou à conserver, pour le voyage actif : <b>${esc(trip?.title||'—')}</b>${trip ? ` · ${esc(ownerLabel(trip))}` : ''}.</p>
     <div class="grid g-3">
       <button class="card hoverable btn-card pdf">${icon('download')}<b>PDF du voyage</b><small>Récapitulatif complet imprimable</small></button>
       <button class="card hoverable btn-card book">${icon('star')}<b>Carnet souvenir</b><small>Journal + photos + activités</small></button>
@@ -49,7 +50,8 @@ function buildTripDoc(trip) {
   const spent = exp.reduce((s,e)=>s+ +e.amount,0);
   return `
     <div class="head"><h1 style="color:#fff;margin:0">${trip.cover} ${esc(trip.title)}</h1>
-      <p style="margin:6px 0 0">${esc(trip.destination)} · ${fmtDate(trip.start)} → ${fmtDate(trip.end)}</p></div>
+      <p style="margin:6px 0 0">${esc(trip.destination)} · ${fmtDate(trip.start)} → ${fmtDate(trip.end)}</p>
+      <p style="margin:6px 0 0">👤 ${esc(ownerLabel(trip))} · ${esc(familyTripMessage(trip))}</p></div>
     <p>${esc(trip.notes||'')}</p>
     <h2>💰 Budget</h2><p>Prévisionnel : <b>${fmtMoney(trip.budget)}</b> · Dépensé : <b>${fmtMoney(spent)}</b> · Restant : <b>${fmtMoney(trip.budget-spent)}</b></p>
     <h2>🎟️ Réservations</h2><table><tr><th>Type</th><th>Intitulé</th><th>Date</th><th>Montant</th></tr>
@@ -62,7 +64,7 @@ function buildSouvenir(trip) {
   const journal = (store.list('journal')||[]).filter(j=>j.tripId===trip.id);
   const hikes = store.list('hikes').filter(h=>h.tripId===trip.id);
   return `
-    <div class="head"><h1 style="color:#fff;margin:0">📔 Carnet souvenir</h1><p style="margin:6px 0 0">${esc(trip.title)} · ${esc(trip.destination)}</p></div>
+    <div class="head"><h1 style="color:#fff;margin:0">📔 Carnet souvenir</h1><p style="margin:6px 0 0">${esc(trip.title)} · ${esc(trip.destination)}</p><p style="margin:6px 0 0">👤 ${esc(ownerLabel(trip))} · ${esc(familyTripMessage(trip))}</p></div>
     <h2>📝 Journal de bord</h2>
     ${journal.length?journal.map(j=>`<p><b>${fmtDate(j.date)}</b><br>${esc(j.text)}</p>`).join(''):'<p>Aucune note de journal pour l\'instant.</p>'}
     <h2>🥾 Randonnées</h2><ul>${hikes.map(h=>`<li>${esc(h.title)} — ${esc(h.dist)} km, ${esc(h.deniv)} m D+</li>`).join('')||'<li>—</li>'}</ul>
@@ -71,8 +73,8 @@ function buildSouvenir(trip) {
 
 function exportBudgetCSV(trip) {
   const exp = store.list('expenses').filter(e=>e.tripId===trip?.id);
-  const rows = [['Date','Catégorie','Libellé','Montant (€)'],
-    ...exp.map(e=>[e.date,e.cat,e.label,String(e.amount).replace('.',',')])];
+  const rows = [['Voyage choisi par','Date','Catégorie','Libellé','Montant (€)'],
+    ...exp.map(e=>[tripOwnerName(trip),e.date,e.cat,e.label,String(e.amount).replace('.',',')])];
   const csv = '\uFEFF' + rows.map(r=>r.map(c=>`"${String(c).replace(/"/g,'""')}"`).join(';')).join('\n');
   const blob = new Blob([csv],{type:'text/csv;charset=utf-8'});
   const a = document.createElement('a'); a.href=URL.createObjectURL(blob);
