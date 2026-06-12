@@ -3,6 +3,7 @@
 import { store } from '../store.js';
 import { icon, fmtMoney, fmtDate, fmtDateShort, daysUntil, esc } from '../lib/ui.js';
 import { media } from '../lib/media.js';
+import { ownerBadgeHTML, ownerMiniLineHTML } from '../lib/tripOwners.js';
 
 export function Dashboard(nav) {
   const el = document.createElement('div');
@@ -38,7 +39,9 @@ export function Dashboard(nav) {
             ${d!=null?`<span>${icon('clock')} J−${d} avant le départ</span>`:''}
             <span>${icon('globe')} ${esc(trip?.destination||'—')}</span>
             <span>${icon('calendar')} ${fmtDateShort(trip?.start)} → ${fmtDateShort(trip?.end)}</span>
+            ${trip ? `<span>👤 ${ownerMiniLineHTML(trip).replace(' · 👤 ', '') || 'Non attribué'}</span>` : ''}
           </div>
+          ${trip ? ownerBadgeHTML(trip) : ''}
         </div>
         ${trip ? `<a class="hero-cta" data-go="trips">Voir les détails</a>` : ''}
       </div>
@@ -58,7 +61,7 @@ export function Dashboard(nav) {
         <div class="bento-decor">${icon('map')}</div>
         <div class="stat-ic">${icon('compass')}</div>
         <div class="value sm" style="font-size:1.6rem">${esc(trip?.destination||'—')}</div>
-        <div class="sub">${esc(trip?.title||'')}</div>
+        <div class="sub">${esc(trip?.title||'')}${trip ? ownerMiniLineHTML(trip) : ''}</div>
         <div class="map-tag">${icon('pin')} ${placesCount} point${placesCount===1?'':'s'} sur la carte</div>
       </div>
 
