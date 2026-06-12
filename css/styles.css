@@ -1503,3 +1503,338 @@ a.docrow:hover { border-color: var(--sage-deep); }
   accent-color: var(--sage-deep);
   cursor: pointer;
 }
+
+/* ============================================================
+   MODULE PROGRAMMES — maquette "Carnet de voyage" fournie
+   Style visuel uniquement : aucune logique métier n'est changée.
+   ============================================================ */
+.prog-showcase {
+  width: 100%;
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 0 0 86px;
+  position: relative;
+}
+
+.prog-showcase-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 28px;
+  align-items: start;
+}
+
+.prog-travel-card {
+  min-height: 422px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border-radius: 20px;
+  background: #fffdf9;
+  border: 1px solid #e8cdbd;
+  box-shadow: none;
+  cursor: pointer;
+  transition: transform .22s var(--ease), border-color .22s var(--ease), box-shadow .22s var(--ease);
+}
+.prog-travel-card:hover {
+  transform: translateY(-2px);
+  border-color: #d8aa8e;
+  box-shadow: 0 18px 40px -28px rgba(92, 37, 4, .35);
+}
+
+.prog-card-cover {
+  height: 230px;
+  position: relative;
+  overflow: hidden;
+  background-size: cover;
+  background-position: center;
+  display: grid;
+  place-items: center;
+  isolation: isolate;
+}
+.prog-card-cover img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  z-index: 0;
+}
+.prog-card-cover::before,
+.prog-card-cover::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+.prog-card-cover::before { z-index: -2; }
+.prog-card-cover::after {
+  z-index: 1;
+  background: linear-gradient(to bottom, rgba(38, 20, 6, 0) 58%, rgba(38, 20, 6, .18));
+}
+.prog-card-cover[style*="background-image"] .prog-card-emoji { display: none; }
+
+.prog-card-cover--valley::before {
+  background:
+    radial-gradient(150px 110px at 18% 16%, rgba(255,255,230,.65), transparent 58%),
+    radial-gradient(230px 180px at 66% 15%, rgba(255,235,170,.35), transparent 62%),
+    radial-gradient(170px 160px at 30% 82%, rgba(48,123,54,.95), transparent 62%),
+    radial-gradient(260px 230px at 18% 38%, #57783f 0 42%, transparent 43%),
+    radial-gradient(290px 245px at 58% 40%, #689d4b 0 45%, transparent 46%),
+    linear-gradient(145deg, #dbe6ba 0%, #8bb066 34%, #386a3a 62%, #d9b483 100%);
+}
+.prog-card-cover--valley .prog-card-shine {
+  position: absolute;
+  left: 38%;
+  bottom: 10%;
+  width: 70px;
+  height: 70px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 50% 48%, rgba(255,255,255,.92), rgba(255,255,255,.68) 44%, rgba(175,220,220,.35) 58%, transparent 64%);
+  filter: blur(.2px);
+  z-index: 1;
+}
+.prog-card-cover--mountain::before {
+  background:
+    linear-gradient(135deg, rgba(95,178,205,.75), rgba(217,239,235,.58) 38%, transparent 39%),
+    linear-gradient(122deg, transparent 0 29%, #eaf4f1 30% 38%, #9fc7c9 39% 43%, transparent 44%),
+    linear-gradient(122deg, transparent 0 45%, #f5fbfb 46% 58%, #6d98a2 59% 66%, transparent 67%),
+    linear-gradient(63deg, transparent 0 32%, #24404b 33% 58%, transparent 59%),
+    linear-gradient(118deg, transparent 0 42%, #173341 43% 72%, transparent 73%),
+    linear-gradient(to bottom, #9fcdd6 0%, #d5eee9 43%, #476b66 44%, #243b38 100%);
+}
+.prog-card-cover--mountain .prog-card-shine {
+  position: absolute;
+  inset: auto 0 0 0;
+  height: 52px;
+  background: linear-gradient(to bottom, rgba(255,255,255,.42), rgba(255,255,255,.04));
+  opacity: .36;
+  z-index: 1;
+}
+.prog-card-emoji {
+  position: relative;
+  z-index: 2;
+  width: 74px;
+  height: 74px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: rgba(255,255,255,.76);
+  color: var(--sage-deep);
+  font-size: 38px;
+  box-shadow: 0 12px 34px -20px rgba(0,0,0,.6);
+}
+
+.prog-duration-badge {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  z-index: 3;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  height: 30px;
+  padding: 0 12px;
+  border-radius: 999px;
+  background: #9c5a05;
+  color: #fffaf4;
+  font-size: .78rem;
+  line-height: 1;
+  font-weight: 800;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+  box-shadow: 0 8px 18px -12px rgba(0,0,0,.55);
+}
+.prog-duration-badge svg {
+  width: 14px;
+  height: 14px;
+  stroke-width: 2.4;
+}
+
+.prog-card-body {
+  position: relative;
+  min-height: 190px;
+  padding: 24px 24px 20px;
+  background: #fffdf9;
+}
+.prog-card-open {
+  position: absolute;
+  top: 24px;
+  right: 22px;
+  width: 36px;
+  height: 36px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  border: 1px solid #e8cdbd;
+  background: #fffdf9;
+  color: #9c5a05;
+  font-size: 1.25rem;
+  line-height: 1;
+  transition: transform .18s var(--ease), background .18s var(--ease);
+}
+.prog-travel-card:hover .prog-card-open {
+  transform: translate(2px, -2px);
+  background: #fff7ee;
+}
+
+.prog-card-title {
+  max-width: calc(100% - 52px);
+  margin: 0 0 8px;
+  font-family: var(--serif);
+  font-size: .88rem;
+  line-height: 1.2;
+  font-weight: 600;
+  color: #2a1710;
+}
+.prog-card-place {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin-bottom: 14px;
+  color: #ad6132;
+  font-size: .8rem;
+  font-weight: 500;
+  letter-spacing: .04em;
+}
+.prog-card-place svg {
+  width: 15px;
+  height: 15px;
+  color: #ad6132;
+  stroke-width: 1.9;
+}
+.prog-card-desc {
+  min-height: 72px;
+  margin: 0 0 18px;
+  color: #654131;
+  font-size: .93rem;
+  line-height: 1.62;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.prog-card-tags {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.prog-card-tags span {
+  min-height: 19px;
+  padding: 4px 10px;
+  border-radius: 6px;
+  background: #f4eee7;
+  color: #583528;
+  font-size: .62rem;
+  font-weight: 900;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+
+.prog-benefits {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 28px;
+  margin-top: 48px;
+}
+.prog-benefit {
+  min-height: 156px;
+  padding: 26px 20px 22px;
+  border-radius: 20px;
+  background: rgba(255, 255, 255, .22);
+  text-align: center;
+  color: #8a6f62;
+}
+.prog-benefit-icon {
+  height: 26px;
+  display: grid;
+  place-items: center;
+  color: #b7602f;
+  margin-bottom: 12px;
+}
+.prog-benefit-icon svg {
+  width: 25px;
+  height: 25px;
+  stroke-width: 2.2;
+}
+.prog-benefit h4 {
+  margin: 0 0 8px;
+  color: #c07b5b;
+  font-family: var(--serif);
+  font-size: .92rem;
+  line-height: 1.2;
+  font-weight: 700;
+}
+.prog-benefit p {
+  max-width: 18ch;
+  margin: 0 auto;
+  color: #8a776d;
+  font-size: .9rem;
+  line-height: 1.35;
+  font-weight: 700;
+}
+
+.prog-empty-shell {
+  border: 1px dashed #e8cdbd;
+  border-radius: 20px;
+  background: rgba(255,255,255,.38);
+}
+
+.prog-fab {
+  position: fixed;
+  right: max(32px, env(safe-area-inset-right));
+  bottom: max(32px, env(safe-area-inset-bottom));
+  z-index: 55;
+  width: 48px;
+  height: 48px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: #9c5a05;
+  color: #fffaf4;
+  border: none;
+  box-shadow: 0 14px 28px -18px rgba(68, 22, 0, .8);
+  transition: transform .18s var(--ease), background .18s var(--ease);
+}
+.prog-fab:hover {
+  transform: translateY(-2px);
+  background: #854a03;
+}
+.prog-fab svg {
+  width: 22px;
+  height: 22px;
+  stroke-width: 2.4;
+}
+
+[data-theme="dark"] .prog-travel-card,
+[data-theme="dark"] .prog-card-body,
+[data-theme="dark"] .prog-card-open {
+  background: #211a14;
+}
+[data-theme="dark"] .prog-travel-card,
+[data-theme="dark"] .prog-card-open,
+[data-theme="dark"] .prog-empty-shell {
+  border-color: var(--border);
+}
+[data-theme="dark"] .prog-card-title { color: var(--ink); }
+[data-theme="dark"] .prog-card-place,
+[data-theme="dark"] .prog-card-place svg,
+[data-theme="dark"] .prog-card-open { color: var(--sage-deep); }
+[data-theme="dark"] .prog-card-desc { color: var(--ink-soft); }
+[data-theme="dark"] .prog-card-tags span { background: var(--surface-2); color: var(--ink-soft); }
+[data-theme="dark"] .prog-benefit { background: rgba(255,255,255,.04); }
+[data-theme="dark"] .prog-benefit p { color: var(--ink-faint); }
+
+@media (max-width: 900px) {
+  .prog-showcase { max-width: none; }
+  .prog-showcase-grid { gap: 18px; }
+  .prog-card-cover { height: 210px; }
+  .prog-benefits { gap: 16px; }
+}
+@media (max-width: 680px) {
+  .prog-showcase-grid,
+  .prog-benefits { grid-template-columns: 1fr; }
+  .prog-travel-card { min-height: 0; }
+  .prog-fab { bottom: 86px; right: 18px; }
+}
