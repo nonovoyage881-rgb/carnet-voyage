@@ -19,6 +19,7 @@
 import { store } from '../store.js';
 import { icon, toast, fmtMoney, esc, sheet, confirmDialog, empty } from '../lib/ui.js';
 import { media } from '../lib/media.js';
+import { currentOwnerPatch, ownerBadgeHTML } from '../lib/tripOwners.js';
 
 // ── Constantes ────────────────────────────────────────────────────────────
 const DEFAULT_EMOJI = '🗺️';
@@ -207,6 +208,7 @@ export function Programs(nav) {
     const total = calcTotal(p);
     const items = countItems(p);
     const linked = linkedTripExists(p);
+    const linkedTrip = linked ? store.doc('trips', p.linkedTripId) : null;
     const tags = progTags(p, total, items, linked);
     const description = (p.description || '').trim()
       || (items > 0
@@ -241,6 +243,7 @@ export function Programs(nav) {
 
     const total = calcTotal(p);
     const linked = linkedTripExists(p);
+    const linkedTrip = linked ? store.doc('trips', p.linkedTripId) : null;
 
     panel.innerHTML = `
       <!-- Barre nav sticky -->
@@ -277,7 +280,7 @@ export function Programs(nav) {
           </button>
         </div>
 
-        ${linked ? `<p style="font-size:.82rem;color:var(--ink-faint);margin:-10px 0 18px">Un voyage a déjà été créé depuis ce programme.</p>` : ''}
+        ${linked ? `<p style="font-size:.82rem;color:var(--ink-faint);margin:-10px 0 10px">Un voyage a déjà été créé depuis ce programme.</p>${linkedTrip ? ownerBadgeHTML(linkedTrip) : ''}` : ''}
 
         <!-- Description -->
         ${p.description ? `
@@ -752,6 +755,7 @@ export function Programs(nav) {
         lat         : 46.6,
         lng         : 2.4,
         photos      : [],
+        ...currentOwnerPatch(),
       });
 
       // 2. Créer les activités depuis le programme jour par jour
