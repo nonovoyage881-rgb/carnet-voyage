@@ -53,6 +53,7 @@ export function MapView() {
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '© OpenStreetMap', maxZoom: 18 }).addTo(map);
 
     const groups = {}; LAYERS.forEach((l) => { groups[l.key] = L.layerGroup().addTo(map); });
+    const tripLayer = L.layerGroup().addTo(map);
 
     function marker(lat, lng, emoji, title, sub) {
       const ic = L.divIcon({ html: `<div style="font-size:26px;filter:drop-shadow(0 2px 3px rgba(0,0,0,.35))">${emoji}</div>`, className: '', iconSize: [30, 30], iconAnchor: [15, 28] });
@@ -61,8 +62,15 @@ export function MapView() {
 
     function drawAll() {
       Object.values(groups).forEach((g) => g.clearLayers());
+      tripLayer.clearLayers();
       const bounds = [];
       const push = (lat, lng) => bounds.push([lat, lng]);
+
+      // Emplacement principal du voyage
+      if (trip && hasCoords(trip)) {
+        marker(trip.lat, trip.lng, '📍', trip.title || 'Voyage', trip.destination || '').addTo(tripLayer);
+        push(trip.lat, trip.lng);
+      }
 
       // Points d'intérêt
       store.list('places').filter((p) => p.tripId === trip?.id && hasCoords(p)).forEach((p) => {
