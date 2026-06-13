@@ -4,6 +4,17 @@ import { icon, toast, fmtMoney, esc, sheet, confirmDialog, empty } from '../lib/
 import { media } from '../lib/media.js';
 import * as geo from '../lib/geo.js';
 
+const DEFAULT_ACTIVITY_IMAGE = 'assets/activity-default.svg';
+const firstPhoto = (x) => (Array.isArray(x?.photos) && x.photos[0]?.id) ? x.photos[0] : null;
+const activityCoverAttrs = (a) => {
+  const photo = firstPhoto(a);
+  return photo ? `data-media="${photo.id}"` : `style="background-image:url('${DEFAULT_ACTIVITY_IMAGE}')"`;
+};
+const activityGalleryHTML = (a) => {
+  const photos = Array.isArray(a?.photos) ? a.photos.filter(p => p?.id) : [];
+  return `<div class="gallery">${photos.length ? photos.map(p => `<img data-media="${p.id}" alt="">`).join('') : `<img src="${DEFAULT_ACTIVITY_IMAGE}" alt="">`}</div>`;
+};
+
 const CATS = ['Visite', 'Marché', 'Randonnée', 'Plage', 'Sport', 'Autre'];
 const CAT_EMOJI = { Visite: '🏛️', Marché: '🧺', Randonnée: '🥾', Plage: '🏖️', Sport: '🚴', Autre: '📍' };
 const STATUS = [['envie', 'Envie'], ['enregistre', 'Enregistrée'], ['realise', 'Réalisée']];
@@ -133,7 +144,7 @@ export function Activities() {
 
   const cardHTML = (a) => `
     <div class="card hoverable disc-card" data-id="${a.id}">
-      <div class="cover" ${a.photos && a.photos[0] ? `data-media="${a.photos[0].id}"` : ''}>${a.photos && a.photos[0] ? '' : (CAT_EMOJI[a.cat] || '📍')}</div>
+      <div class="cover" ${activityCoverAttrs(a)}></div>
       <h3 style="margin:10px 0 2px">${esc(a.title)}</h3>
       <small style="color:var(--ink-faint)">${esc(a.cat || '')}${a.dist ? ' · ' + esc(a.dist) : ''}</small>
       <div class="tagrow">
@@ -150,7 +161,7 @@ export function Activities() {
   function detail(id) {
     const a = store.doc('activities', id); if (!a) return;
     const s = sheet({ title: a.title, okText: 'Modifier', bodyHTML: `
-      ${a.photos && a.photos.length ? `<div class="gallery">${a.photos.map(p => `<img data-media="${p.id}" alt="">`).join('')}</div>` : ''}
+      ${activityGalleryHTML(a)}
       <div class="tagrow"><span class="tag">${esc(a.cat || '')}</span><span class="tag ${a.status === 'realise' ? 'sage' : a.status === 'enregistre' ? 'sky' : ''}">${stLabel(a.status)}</span>${a.pets ? `<span class="tag sage">${icon('paw')} Animaux admis</span>` : ''}</div>
       <div class="kvs">
         ${a.price ? `<div class="kv"><span>Prix</span><b>${fmtMoney(a.price)}</b></div>` : `<div class="kv"><span>Prix</span><b>Gratuit</b></div>`}
