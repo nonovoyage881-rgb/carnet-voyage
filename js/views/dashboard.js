@@ -5,6 +5,14 @@ import { icon, fmtMoney, fmtDate, fmtDateShort, daysUntil, esc } from '../lib/ui
 import { media } from '../lib/media.js';
 import { ownerBadgeHTML, ownerMiniLineHTML } from '../lib/tripOwners.js';
 
+const DEFAULT_ACTIVITY_IMAGE = 'assets/activity-default.svg';
+const hasCoords = (x) => x && typeof x.lat === 'number' && typeof x.lng === 'number' && !isNaN(x.lat) && !isNaN(x.lng);
+const firstPhoto = (x) => (Array.isArray(x?.photos) && x.photos[0]?.id) ? x.photos[0] : null;
+const activityImageHTML = (a) => {
+  const photo = firstPhoto(a);
+  return photo ? `<img data-media="${photo.id}" alt="">` : `<img src="${DEFAULT_ACTIVITY_IMAGE}" alt="">`;
+};
+
 export function Dashboard(nav) {
   const el = document.createElement('div');
   const trip = store.activeTrip();
@@ -94,7 +102,7 @@ export function Dashboard(nav) {
         <div class="list">
           ${recentActs.length?recentActs.map(a=>`
             <div class="act-row">
-              <div class="thumb">${a.photos && a.photos[0] ? `<img data-media="${a.photos[0].id}" alt="">` : icon('star')}</div>
+              <div class="thumb">${activityImageHTML(a)}</div>
               <div class="body"><h5>${esc(a.title)}</h5><small>${icon('star')}${esc(a.cat)} · ${esc(a.status)}</small></div>
               <div class="fav">${icon('heart')}</div>
               ${a.pets?`<span class="tag sage">${icon('paw')}</span>`:''}
@@ -131,14 +139,41 @@ export function Dashboard(nav) {
   // mini carte Leaflet
   setTimeout(() => {
     if (!window.L) return;
-    const places = store.list('places').filter(p=>p.tripId===trip?.id);
-    const center = trip ? [trip.lat, trip.lng] : [46.6, 2.2];
+    const points = [];
+    const addPoint = (lat, lng) => { if (typeof lat === 'number' && typeof lng === 'number' && !isNaN(lat) && !isNaN(lng)) points.push([lat, lng]); };
+    const center = trip && hasCoords(trip) ? [trip.lat, trip.lng] : [46.6, 2.2];
     // BUG-13 : détruire l'instance Leaflet précédente si elle existe
     const miniMapNode = document.getElementById('mini-map');
     if (miniMapNode && miniMapNode._leaflet_id) { try { L.map(miniMapNode).remove(); } catch(e) {} }
     const map = L.map('mini-map', { scrollWheelZoom:false }).setView(center, 8);
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution:'© OpenStreetMap', maxZoom:18 }).addTo(map);
-    places.forEach(p => L.marker([p.lat, p.lng]).addTo(map).bindPopup(`<b>${esc(p.name)}</b><br>${esc(p.cat)}`));
+
+    if (trip && hasCoords(trip)) {
+      L.marker([trip.lat, trip.lng]).addTo(map).bindPopup(`<b>${esc(trip.title || 'Voyage')}</b>${trip.destination ? `<br>${esc(trip.destination)}` : ''}`);
+      addPoint(trip.lat, trip.lng);
+    }
+
+    store.list('places').filter(p => p.tripId === trip?.id && hasCoords(p)).forEach(p => {
+      L.marker([p.lat, p.lng]).addTo(map).bindPopup(`<b>${esc(p.name)}</b><br>${esc(p.cat)}`);
+      addPoint(p.lat, p.lng);
+    });
+
+    store.list('activities').filter(a => (!a.tripId || a.tripId === trip?.id) && hasCoords(a)).forEach(a => {
+      L.marker([a.lat, a.lng]).addTo(map).bindPopup(`<b>${esc(a.title)}</b>${a.cat ? `<br>${esc(a.cat)}` : ''}`);
+      addPoint(a.lat, a.lng);
+    });
+
+    const itinerary = store.list('itineraries').find(i => i.tripId === trip?.id);
+    (itinerary?.stops || []).filter(hasCoords).forEach((stop, index) => {
+      L.marker([stop.lat, stop.lng]).addTo(map).bindPopup(`<b>Étape ${index + 1}</b>${stop.name ? `<br>${esc(stop.name)}` : ''}`);
+      addPoint(stop.lat, stop.lng);
+    });
+
+    if (points.length > 1) {
+      try { map.fitBounds(points, { padding: [28, 28], maxZoom: 12 }); } catch (e) {}
+    } else if (points.length === 1) {
+      map.setView(points[0], 10);
+    }
   }, 80);
 
   return el;
