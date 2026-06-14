@@ -5,7 +5,7 @@
 //  -> évite de rester bloqué sur une ancienne version après une mise à jour.
 //  À chaque déploiement modifiant le SW, on incrémente CACHE.
 // =====================================================================
-const CACHE = 'cvs-v15';
+const CACHE = 'cvs-v16';
 
 const SHELL = [
   './',
