@@ -35,13 +35,16 @@ const ROUTES = {
   programs:     { label: 'Programmes',      icon: 'map',      view: Programs,     group: 'Préparer' },
   gallery:      { label: 'Galerie photos',  icon: 'image',    view: Gallery,      group: 'Préparer' },
   trips:        { label: 'Voyages',         icon: 'suitcase', view: Trips,        group: 'Préparer' },
-  itineraries:  { label: 'Itinéraires',     icon: 'route',    view: Itineraries,  group: 'Préparer' },
+  // Onglet masqué : les informations utiles d'itinéraire sont maintenant fusionnées dans Programme + Carte.
+  // La route reste disponible si un ancien lien #itineraries existe, aucune donnée n'est supprimée.
+  itineraries:  { label: 'Itinéraires',     icon: 'route',    view: Itineraries,  group: 'Préparer', hidden: true },
   reservations: { label: 'Réservations',    icon: 'ticket',   view: Reservations, group: 'Préparer' },
   budget:       { label: 'Budget',          icon: 'wallet',   view: Budget,       group: 'Sur place' },
   activities:   { label: 'Activités',       icon: 'star',     view: Activities,   group: 'Sur place' },
   weather:      { label: 'Météo',           icon: 'cloud',    view: Weather,      group: 'Sur place' },
   map:          { label: 'Carte',           icon: 'map',      view: MapView,      group: 'Sur place' },
-  hikes:        { label: 'Randonnées',      icon: 'mountain', view: Hikes,        group: 'Sur place' },
+  // Onglet masqué : une randonnée reste une catégorie d'activité. L'ancienne collection hikes est conservée.
+  hikes:        { label: 'Randonnées',      icon: 'mountain', view: Hikes,        group: 'Sur place', hidden: true },
   animals:      { label: 'Animaux',         icon: 'paw',      view: Animals,      group: 'Logistique' },
   maintenance:  { label: 'Entretien',       icon: 'wrench',   view: Maintenance,  group: 'Logistique' },
   inventory:    { label: 'Inventaire',      icon: 'box',      view: Inventory,    group: 'Logistique' },
@@ -52,7 +55,11 @@ const ROUTES = {
 };
 
 // Raccourcis affichés dans la barre du bas (mobile)
-const BOTTOM = ['dashboard', 'discover', 'trips', 'map', 'budget'];
+const BOTTOM = ['dashboard', 'trips', 'programs', 'activities', 'map'];
+
+function visibleRoutes() {
+  return Object.entries(ROUTES).filter(([, def]) => !def.hidden);
+}
 
 const root = document.getElementById('app');
 let current = 'dashboard';
@@ -92,7 +99,7 @@ function viewFor(route) {
 function navLinksHTML() {
   let html = '';
   let lastGroup = '__';
-  for (const [route, def] of Object.entries(ROUTES)) {
+  for (const [route, def] of visibleRoutes()) {
     const g = def.group || '';
     if (g !== lastGroup) {
       if (g) html += `<div class="nav-group">${g}</div>`;
@@ -106,7 +113,7 @@ function navLinksHTML() {
 
 // Onglets horizontaux (défilables)
 function tabLinksHTML() {
-  return Object.entries(ROUTES).map(([route, def]) =>
+  return visibleRoutes().map(([route, def]) =>
     `<a href="#${route}" data-route="${route}" class="tab ${route === current ? 'active' : ''}">
       ${icon(def.icon)}<span>${def.label}</span></a>`).join('');
 }
