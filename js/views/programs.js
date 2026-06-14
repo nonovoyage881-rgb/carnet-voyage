@@ -101,6 +101,69 @@ function linkifyNotes(text = '') {
   return html.replace(/\n/g, '<br>');
 }
 
+function activityByProgramItem(item) {
+  if (!item) return null;
+  if (item.activityId) return store.doc('activities', item.activityId) || null;
+  const label = String(item.label || '').trim().toLowerCase();
+  if (!label) return null;
+  return store.list('activities').find(a => String(a.title || '').trim().toLowerCase() === label) || null;
+}
+
+function listValue(v) {
+  return Array.isArray(v) ? v.filter(Boolean).join(' · ') : String(v || '');
+}
+
+function actField(a, keys, fallback = '') {
+  for (const k of keys) {
+    const v = a?.[k];
+    if (v !== undefined && v !== null && String(v).trim() !== '') return v;
+  }
+  return fallback;
+}
+
+function programActivityTitle(item, act) {
+  return act?.title || item?.label || 'Activité';
+}
+
+function programActivityMeta(item, act) {
+  const duration = item?.plannedDuration || actField(act, ['visitDuration', 'duration']) || '';
+  const diff = actField(act, ['difficulty']) || '';
+  const price = act?.priceLabel || (act?.price ? fmtMoney(act.price) : '');
+  return [
+    duration ? `${icon('clock')} ${esc(duration)}` : '',
+    diff ? `${icon('route')} ${esc(diff)}` : '',
+    price ? `${icon('euro')} ${esc(price)}` : '',
+  ].filter(Boolean).map(x => `<span>${x}</span>`).join('');
+}
+
+function programActivityHTML(item, index = 0) {
+  const act = activityByProgramItem(item);
+  const title = programActivityTitle(item, act);
+  const desc = actField(act, ['shortDescription', 'description', 'note'], item?.notes || '');
+  const when = item?.plannedTime || item?.time || '';
+  const route = [item?.driveTimeFromPrevious, item?.distanceFromPrevious].filter(Boolean).join(' · ');
+  const address = actField(act, ['city', 'address'], '');
+  return `
+    <div class="prog-activity-merge-card">
+      <div class="prog-activity-merge-time">${when ? esc(when) : String(index + 1).padStart(2, '0')}</div>
+      <div class="prog-activity-merge-body">
+        <div class="prog-activity-merge-head">
+          <b>${esc(title)}</b>
+          ${item?.priority ? `<span class="tag">${esc(item.priority)}</span>` : ''}
+          ${item?.optional ? `<span class="tag warn">Optionnel</span>` : ''}
+        </div>
+        ${desc ? `<p>${esc(desc)}</p>` : ''}
+        <div class="prog-activity-merge-meta">
+          ${programActivityMeta(item, act)}
+          ${address ? `<span>${icon('pin')} ${esc(address)}</span>` : ''}
+          ${route ? `<span>${icon('route')} Depuis l'étape précédente : ${esc(route)}</span>` : ''}
+        </div>
+        ${item?.notes ? `<div class="prog-activity-day-note">${icon('edit')} ${linkifyNotes(item.notes)}</div>` : ''}
+      </div>
+    </div>`;
+}
+
+
 // ══════════════════════════════════════════════════════════════════════════
 //  VUE PRINCIPALE
 // ══════════════════════════════════════════════════════════════════════════
@@ -295,12 +358,9 @@ export function Programs(nav) {
           <div class="timeline">
             ${p.programme.map(day => `
               <div class="tl-item future">
-                <div class="idea-tl-day-label">${esc(day.day)}</div>
-                ${(day.items || []).map(it => `
-                  <div class="idea-tl-item-row" style="flex-direction:column;align-items:flex-start;gap:3px">
-                    <div style="display:flex;align-items:center;gap:7px">${icon('star')} ${esc(it.label)}</div>
-                    ${it.notes ? `<div style="font-size:.78rem;color:var(--ink-faint);padding-left:21px;line-height:1.5">${linkifyNotes(it.notes)}</div>` : ''}
-                  </div>`).join('')}
+                <div class="idea-tl-day-label">${esc(day.day)}${day.date ? ` · ${esc(day.date)}` : ''}</div>
+                ${day.dayNotes ? `<div class="prog-day-note">${icon('edit')} ${esc(day.dayNotes)}</div>` : ''}
+                ${(day.items || []).map((it, ii) => programActivityHTML(it, ii)).join('')}
               </div>`).join('')}
           </div>
         </div>` : ''}
@@ -376,7 +436,7 @@ export function Programs(nav) {
     const isEdit = !!p;
 
     // Copies locales des listes dynamiques
-    let programme  = p && p.programme    ? p.programme.map(d => ({ day: d.day, items: (d.items || []).map(it => ({ ...it })) })) : [];
+    let programme  = p && p.programme    ? p.programme.map(d => ({ ...d, items: (d.items || []).map(it => ({ ...it })) })) : [];
     let budget     = p && p.budgetDetail ? p.budgetDetail.map(l => ({ ...l })) : [];
     let hebergs    = p && p.hebergements ? p.hebergements.map(h => ({ ...h })) : [];
     let photos     = p && p.photos       ? [...p.photos] : [];
@@ -489,30 +549,59 @@ export function Programs(nav) {
     // ── Render dynamique des jours ──
     function renderDays() {
       const host = panel.querySelector('#pf-days');
+      const activities = store.list('activities');
+      const activityOptions = (selected) => `<option value="">Saisie libre / aucune fiche liée</option>${activities.map(a => `<option value="${esc(a.id)}" ${selected === a.id ? 'selected' : ''}>${esc(a.title)}${a.cat ? ` · ${esc(a.cat)}` : ''}</option>`).join('')}`;
+
       if (!programme.length) {
         host.innerHTML = `<p style="color:var(--ink-faint);font-size:.88rem">Aucun jour ajouté.</p>`;
         return;
       }
       host.innerHTML = programme.map((day, di) => `
         <div class="pf-day" style="border:1px solid var(--border);border-radius:var(--r);padding:14px;margin-bottom:10px">
-          <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
-            <input class="pf-day-label" data-di="${di}" value="${esc(day.day)}"
-              style="flex:1;border:1px solid var(--border);background:var(--surface-2);border-radius:var(--r-sm);padding:7px 10px;font-weight:700;font-size:.88rem"
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;flex-wrap:wrap">
+            <input class="pf-day-label" data-di="${di}" value="${esc(day.day || '')}"
+              style="flex:1;min-width:160px;border:1px solid var(--border);background:var(--surface-2);border-radius:var(--r-sm);padding:7px 10px;font-weight:700;font-size:.88rem"
               placeholder="Jour ${di+1}">
+            <input class="pf-day-date" data-di="${di}" type="date" value="${esc(day.date || '')}"
+              style="width:150px;border:1px solid var(--border);background:var(--surface);border-radius:var(--r-sm);padding:7px 10px;font-size:.84rem">
             <button class="btn sm ghost pf-del-day" data-di="${di}">${icon('trash')}</button>
           </div>
+          <textarea class="pf-day-notes" data-di="${di}" rows="2"
+            style="width:100%;border:1px solid var(--border);background:var(--surface-2);border-radius:var(--r-sm);padding:7px 10px;font-size:.82rem;resize:vertical;font-family:inherit;color:var(--ink-soft);margin-bottom:10px"
+            placeholder="Notes du jour, météo, organisation globale…">${esc(day.dayNotes || '')}</textarea>
           <div class="pf-items-host" data-di="${di}">
             ${(day.items||[]).map((it, ii) => `
-              <div style="margin-bottom:8px">
-                <div style="display:flex;align-items:center;gap:7px;margin-bottom:3px">
-                  <input class="pf-item-label" data-di="${di}" data-ii="${ii}" value="${esc(it.label)}"
-                    style="flex:1;border:1px solid var(--border);background:var(--surface);border-radius:var(--r-sm);padding:6px 10px;font-size:.85rem"
-                    placeholder="Activité ou étape…">
+              <div class="pf-program-item" style="border:1px solid var(--border);border-radius:var(--r-sm);padding:10px;margin-bottom:10px;background:var(--surface)">
+                <div style="display:flex;align-items:center;gap:7px;margin-bottom:7px">
+                  <select class="pf-item-activity" data-di="${di}" data-ii="${ii}"
+                    style="flex:1;border:1px solid var(--border);background:var(--surface-2);border-radius:var(--r-sm);padding:7px 10px;font-size:.84rem">
+                    ${activityOptions(it.activityId || '')}
+                  </select>
                   <button class="btn sm ghost pf-del-item" data-di="${di}" data-ii="${ii}">${icon('x')}</button>
+                </div>
+                <input class="pf-item-label" data-di="${di}" data-ii="${ii}" value="${esc(it.label || '')}"
+                  style="width:100%;border:1px solid var(--border);background:var(--surface);border-radius:var(--r-sm);padding:6px 10px;font-size:.85rem;margin-bottom:7px"
+                  placeholder="Nom affiché si aucune fiche activité n'est liée…">
+                <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px;margin-bottom:7px">
+                  <input class="pf-item-time" data-di="${di}" data-ii="${ii}" type="time" value="${esc(it.plannedTime || it.time || '')}"
+                    style="border:1px solid var(--border);background:var(--surface-2);border-radius:var(--r-sm);padding:6px 10px;font-size:.82rem" title="Heure prévue">
+                  <input class="pf-item-drive" data-di="${di}" data-ii="${ii}" value="${esc(it.driveTimeFromPrevious || '')}"
+                    style="border:1px solid var(--border);background:var(--surface-2);border-radius:var(--r-sm);padding:6px 10px;font-size:.82rem" placeholder="Route depuis avant">
+                  <input class="pf-item-distance" data-di="${di}" data-ii="${ii}" value="${esc(it.distanceFromPrevious || '')}"
+                    style="border:1px solid var(--border);background:var(--surface-2);border-radius:var(--r-sm);padding:6px 10px;font-size:.82rem" placeholder="Distance depuis avant">
+                </div>
+                <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px;margin-bottom:7px">
+                  <select class="pf-item-priority" data-di="${di}" data-ii="${ii}" style="border:1px solid var(--border);background:var(--surface-2);border-radius:var(--r-sm);padding:6px 10px;font-size:.82rem">
+                    ${['','Incontournable','Important','Optionnel'].map(v => `<option value="${esc(v)}" ${String(it.priority || '') === v ? 'selected' : ''}>${v || 'Priorité'}</option>`).join('')}
+                  </select>
+                  <select class="pf-item-reservation" data-di="${di}" data-ii="${ii}" style="border:1px solid var(--border);background:var(--surface-2);border-radius:var(--r-sm);padding:6px 10px;font-size:.82rem">
+                    ${['','À faire','Réservé','Non nécessaire','À vérifier'].map(v => `<option value="${esc(v)}" ${String(it.reservationStatus || '') === v ? 'selected' : ''}>${v || 'Réservation'}</option>`).join('')}
+                  </select>
+                  <label class="checkrow" style="margin:0;min-height:0;padding:6px 10px;font-size:.82rem"><input type="checkbox" class="pf-item-optional" data-di="${di}" data-ii="${ii}" ${it.optional ? 'checked' : ''}> Optionnel</label>
                 </div>
                 <textarea class="pf-item-notes" data-di="${di}" data-ii="${ii}" rows="2"
                   style="width:100%;border:1px solid var(--border);background:var(--surface-2);border-radius:var(--r-sm);padding:5px 10px;font-size:.8rem;resize:vertical;font-family:inherit;color:var(--ink-soft)"
-                  placeholder="Notes, infos pratiques, lien… (optionnel)">${esc(it.notes||'')}</textarea>
+                  placeholder="Notes spécifiques à ce jour uniquement…">${esc(it.notes||'')}</textarea>
               </div>`).join('')}
           </div>
           <button class="btn sm ghost pf-add-item" data-di="${di}" style="margin-top:4px">${icon('plus')} Activité</button>
@@ -520,35 +609,43 @@ export function Programs(nav) {
 
       host.querySelectorAll('.pf-day-label').forEach(inp =>
         inp.oninput = e => { programme[+e.target.dataset.di].day = e.target.value; });
+      host.querySelectorAll('.pf-day-date').forEach(inp =>
+        inp.oninput = e => { programme[+e.target.dataset.di].date = e.target.value; });
+      host.querySelectorAll('.pf-day-notes').forEach(inp =>
+        inp.oninput = e => { programme[+e.target.dataset.di].dayNotes = e.target.value; });
 
+      host.querySelectorAll('.pf-item-activity').forEach(sel =>
+        sel.onchange = e => {
+          const { di, ii } = e.target.dataset;
+          const item = programme[+di].items[+ii];
+          item.activityId = e.target.value;
+          const act = item.activityId ? store.doc('activities', item.activityId) : null;
+          if (act && !(item.label || '').trim()) item.label = act.title;
+          renderDays();
+        });
       host.querySelectorAll('.pf-item-label').forEach(inp =>
-        inp.oninput = e => {
-          const { di, ii } = e.target.dataset;
-          programme[+di].items[+ii].label = e.target.value;
-        });
-
+        inp.oninput = e => { const { di, ii } = e.target.dataset; programme[+di].items[+ii].label = e.target.value; });
+      host.querySelectorAll('.pf-item-time').forEach(inp =>
+        inp.oninput = e => { const { di, ii } = e.target.dataset; programme[+di].items[+ii].plannedTime = e.target.value; });
+      host.querySelectorAll('.pf-item-drive').forEach(inp =>
+        inp.oninput = e => { const { di, ii } = e.target.dataset; programme[+di].items[+ii].driveTimeFromPrevious = e.target.value; });
+      host.querySelectorAll('.pf-item-distance').forEach(inp =>
+        inp.oninput = e => { const { di, ii } = e.target.dataset; programme[+di].items[+ii].distanceFromPrevious = e.target.value; });
+      host.querySelectorAll('.pf-item-priority').forEach(inp =>
+        inp.oninput = e => { const { di, ii } = e.target.dataset; programme[+di].items[+ii].priority = e.target.value; });
+      host.querySelectorAll('.pf-item-reservation').forEach(inp =>
+        inp.oninput = e => { const { di, ii } = e.target.dataset; programme[+di].items[+ii].reservationStatus = e.target.value; });
+      host.querySelectorAll('.pf-item-optional').forEach(inp =>
+        inp.onchange = e => { const { di, ii } = e.target.dataset; programme[+di].items[+ii].optional = e.target.checked; });
       host.querySelectorAll('.pf-item-notes').forEach(inp =>
-        inp.oninput = e => {
-          const { di, ii } = e.target.dataset;
-          programme[+di].items[+ii].notes = e.target.value;
-        });
+        inp.oninput = e => { const { di, ii } = e.target.dataset; programme[+di].items[+ii].notes = e.target.value; });
 
       host.querySelectorAll('.pf-del-day').forEach(b =>
         b.onclick = () => { programme.splice(+b.dataset.di, 1); renderDays(); });
-
       host.querySelectorAll('.pf-add-item').forEach(b =>
-        b.onclick = () => {
-          programme[+b.dataset.di].items.push({ label: '' });
-          renderDays();
-          const inputs = host.querySelectorAll(`.pf-item-label[data-di="${b.dataset.di}"]`);
-          inputs[inputs.length - 1]?.focus();
-        });
-
+        b.onclick = () => { programme[+b.dataset.di].items.push({ label: '' }); renderDays(); });
       host.querySelectorAll('.pf-del-item').forEach(b =>
-        b.onclick = () => {
-          programme[+b.dataset.di].items.splice(+b.dataset.ii, 1);
-          renderDays();
-        });
+        b.onclick = () => { programme[+b.dataset.di].items.splice(+b.dataset.ii, 1); renderDays(); });
     }
 
     // ── Render dynamique du budget ──
@@ -640,15 +737,21 @@ export function Programs(nav) {
 
       // Nettoyage : retirer les items/lignes vides
       const cleanProgramme = programme
-        .filter(d => d.day.trim())
+        .filter(d => (d.day || '').trim())
         .map(d => ({
-          day: d.day.trim(),
+          ...d,
+          day: (d.day || '').trim(),
+          ...(d.date ? { date: d.date } : {}),
+          ...((d.dayNotes || '').trim() ? { dayNotes: d.dayNotes.trim() } : {}),
           items: (d.items || [])
-            .filter(it => (it.label || '').trim())
+            .filter(it => (it.label || '').trim() || it.activityId)
             .map(it => {
-              const item = { label: it.label.trim() };
-              const notes = (it.notes || '').trim();
-              if (notes) item.notes = notes;
+              const act = it.activityId ? store.doc('activities', it.activityId) : null;
+              const item = { ...it, label: (it.label || act?.title || '').trim() };
+              if (it.activityId) item.activityId = it.activityId;
+              const fields = ['notes', 'plannedTime', 'driveTimeFromPrevious', 'distanceFromPrevious', 'priority', 'reservationStatus'];
+              fields.forEach(k => { const v = (it[k] || '').trim ? it[k].trim() : it[k]; if (v) item[k] = v; else delete item[k]; });
+              if (it.optional) item.optional = true; else delete item.optional;
               return item;
             })
         }));
