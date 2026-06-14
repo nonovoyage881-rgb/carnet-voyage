@@ -121,6 +121,27 @@ function actField(a, keys, fallback = '') {
   return fallback;
 }
 
+
+function mapsLinkForActivity(act, item) {
+  const lat = Number(act?.lat);
+  const lng = Number(act?.lng);
+  if (Number.isFinite(lat) && Number.isFinite(lng)) {
+    return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${lat},${lng}`)}`;
+  }
+  const q = actField(act, ['address', 'city', 'sector', 'locationLabel']) || item?.address || item?.label || act?.title || '';
+  return q ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(q)}` : '';
+}
+
+function inferActivityCategory(label = '') {
+  const txt = String(label || '').toLowerCase();
+  if (/randonn|sentier|gr\s?\d+|balade|marche|trail|pointe|plateau/.test(txt)) return 'Randonnée';
+  if (/marché/.test(txt)) return 'Marché';
+  if (/plage|baignade|lac|calanque/.test(txt)) return 'Plage';
+  if (/restaurant|crêperie|auberge|brasserie|repas/.test(txt)) return 'Restaurant';
+  if (/vélo|canoë|kayak|sport|bateau/.test(txt)) return 'Sport';
+  return 'Visite';
+}
+
 function programActivityTitle(item, act) {
   return act?.title || item?.label || 'Activité';
 }
@@ -143,6 +164,7 @@ function programActivityHTML(item, index = 0) {
   const when = item?.plannedTime || item?.time || '';
   const route = [item?.driveTimeFromPrevious, item?.distanceFromPrevious].filter(Boolean).join(' · ');
   const address = actField(act, ['city', 'address'], '');
+  const mapsLink = mapsLinkForActivity(act, item);
   return `
     <div class="prog-activity-merge-card">
       <div class="prog-activity-merge-time">${when ? esc(when) : String(index + 1).padStart(2, '0')}</div>
@@ -157,6 +179,9 @@ function programActivityHTML(item, index = 0) {
           ${programActivityMeta(item, act)}
           ${address ? `<span>${icon('pin')} ${esc(address)}</span>` : ''}
           ${route ? `<span>${icon('route')} Depuis l'étape précédente : ${esc(route)}</span>` : ''}
+        </div>
+        <div class="prog-activity-merge-actions" style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap">
+          ${mapsLink ? `<a class="btn sm ghost" href="${esc(mapsLink)}" target="_blank" rel="noopener">${icon('pin')} Y aller</a>` : ''}
         </div>
         ${item?.notes ? `<div class="prog-activity-day-note">${icon('edit')} ${linkifyNotes(item.notes)}</div>` : ''}
       </div>
@@ -862,21 +887,29 @@ export function Programs(nav) {
       });
 
       // 2. Créer les activités depuis le programme jour par jour
-      if (p.programme && p.programme.length) {
-        p.programme.forEach(day => {
-          (day.items || []).forEach(it => {
-            store.add('activities', {
+      //    et conserver le lien item programme -> fiche activité.
+      //    Cela permet à la carte de lire le Programme puis les Activités,
+      //    sans utiliser une liste de points séparée comme source principale.
+      let linkedProgramme = Array.isArray(p.programme) ? structuredClone(p.programme) : [];
+      if (linkedProgramme.length) {
+        linkedProgramme = linkedProgramme.map(day => ({
+          ...day,
+          items: (day.items || []).map(it => {
+            const existing = it.activityId ? store.doc('activities', it.activityId) : null;
+            const reusable = existing && existing.tripId === trip.id ? existing : null;
+            const act = reusable || store.add('activities', {
               tripId : trip.id,
-              title  : it.label,
-              cat    : 'Visite',
+              title  : it.label || 'Activité',
+              cat    : inferActivityCategory(it.label || ''),
               status : 'envie',
               price  : 0,
               pets   : p.chienOk || false,
               note   : `Depuis le programme · ${day.day}`,
               photos : [],
             });
-          });
-        });
+            return { ...it, label: it.label || act.title, activityId: act.id };
+          }),
+        }));
       }
 
       // 3. Créer les dépenses depuis le budget détaillé
@@ -893,8 +926,8 @@ export function Programs(nav) {
         });
       }
 
-      // 4. Marquer le programme comme utilisé
-      store.update('programs', id, { linkedTripId: trip.id });
+      // 4. Marquer le programme comme utilisé, sans supprimer les anciennes données
+      store.update('programs', id, { linkedTripId: trip.id, programme: linkedProgramme });
 
       // 5. Activer le voyage
       store.setting('activeTripId', trip.id);
