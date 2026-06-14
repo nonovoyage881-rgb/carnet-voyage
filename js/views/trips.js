@@ -153,23 +153,34 @@ export function Trips(nav) {
         <div class="section-head" style="margin-top:18px"><h3 style="font-size:1.05rem">${STATUS[s].l}${s==='futur'?' · à venir':''}</h3><span class="tag">${g.length}</span></div>
         <div class="grid g-2">${g.map(card).join('')}</div>`; }).join('')}
 
-      <div class="section-head"><h3>Chronologie</h3></div>
-      <div class="timeline">
-        ${[...trips].sort((a,b)=>new Date(a.start)-new Date(b.start)).map(t=>`
-          <div class="tl-item ${t.status==='encours'?'now':t.status==='futur'?'future':''}">
-            <b>${esc(t.title)}</b> <span class="tag">${fmtDate(t.start)}</span>
-            <div><small style="color:var(--ink-faint)">${esc(t.destination)}${t.status==='futur'?` · J−${daysUntil(t.start)}`:''}${ownerMiniLineHTML(t)}</small></div>
-          </div>`).join('')}
-      </div>
+      <details class="card" style="margin-top:18px">
+        <summary style="cursor:pointer;font-weight:800;display:flex;align-items:center;gap:8px">
+          ${icon('folder')} Données conservées : chronologie et journal
+          <span class="tag">${trips.length} voyage${trips.length>1?'s':''}</span>
+          <span class="tag">${journal.filter(j=>j.tripId===active?.id).length} note${journal.filter(j=>j.tripId===active?.id).length>1?'s':''}</span>
+        </summary>
+        <p style="color:var(--ink-faint);font-size:.86rem;margin:10px 0 14px">
+          Ces informations sont conservées mais repliées pour alléger l'onglet Voyages. Le Programme reste la vue principale pour organiser les journées.
+        </p>
 
-      <div class="section-head"><h3>Journal de bord — ${esc(active?.title||'')}</h3><div class="spacer"></div>
-        <button class="btn sm primary jadd">${icon('plus')} Note</button></div>
-      <div class="list">
-        ${journal.filter(j=>j.tripId===active?.id).length?journal.filter(j=>j.tripId===active?.id).map(j=>`
-          <div class="item"><div class="ic">${icon('edit')}</div><div class="body"><b>${fmtDate(j.date)}</b><small>${esc(j.text)}</small></div>
-          <div class="acts"><button class="icon-btn jdel" data-id="${j.id}">${icon('trash')}</button></div></div>`).join('')
-        :'<p style="color:var(--ink-faint)">Aucune entrée. Racontez votre journée !</p>'}
-      </div>`;
+        <div class="section-head"><h3>Chronologie simplifiée</h3></div>
+        <div class="timeline">
+          ${[...trips].sort((a,b)=>new Date(a.start)-new Date(b.start)).map(t=>`
+            <div class="tl-item ${t.status==='encours'?'now':t.status==='futur'?'future':''}">
+              <b>${esc(t.title)}</b> <span class="tag">${fmtDate(t.start)}</span>
+              <div><small style="color:var(--ink-faint)">${esc(t.destination)}${t.status==='futur'?` · J−${daysUntil(t.start)}`:''}${ownerMiniLineHTML(t)}</small></div>
+            </div>`).join('')}
+        </div>
+
+        <div class="section-head"><h3>Journal de bord — ${esc(active?.title||'')}</h3><div class="spacer"></div>
+          <button class="btn sm primary jadd">${icon('plus')} Note</button></div>
+        <div class="list">
+          ${journal.filter(j=>j.tripId===active?.id).length?journal.filter(j=>j.tripId===active?.id).map(j=>`
+            <div class="item"><div class="ic">${icon('edit')}</div><div class="body"><b>${fmtDate(j.date)}</b><small>${esc(j.text)}</small></div>
+            <div class="acts"><button class="icon-btn jdel" data-id="${j.id}">${icon('trash')}</button></div></div>`).join('')
+          :'<p style="color:var(--ink-faint)">Aucune entrée. Racontez votre journée !</p>'}
+        </div>
+      </details>`;
 
     el.querySelector('.add').onclick = ()=>form(null);
     el.querySelectorAll('.edit').forEach(b=>b.onclick=()=>form(store.doc('trips',b.dataset.id)));
