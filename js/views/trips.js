@@ -2,7 +2,7 @@
 import { store } from '../store.js';
 import { icon, modal, toast, confirmDialog, fmtDate, daysUntil, esc, sheet } from '../lib/ui.js';
 import { media } from '../lib/media.js';
-import { currentOwnerPatch, assignTripToCurrentUser, ownerMiniLineHTML, tripOwner, familyTripMessage } from '../lib/tripOwners.js';
+import { currentOwnerPatch, assignTripToCurrentUser, ownerBadgeHTML, ownerMiniLineHTML } from '../lib/tripOwners.js';
 
 const STATUS = { futur:{l:'Futur',c:'sky'}, encours:{l:'En cours',c:'warn'}, passe:{l:'Passé',c:''} };
 
@@ -21,70 +21,6 @@ function photoUploader(container, photos) {
     media.hydrate(container);
   };
   draw();
-}
-
-
-function extractDistance(notes='') {
-  return String(notes).match(/(\d+[\s\d]*\s?km)/i)?.[1]?.replace(/\s+/g, ' ') || '488 km';
-}
-
-function extractDuration(notes='') {
-  return String(notes).match(/(\d+\s?h\s?\d*)/i)?.[1]?.replace(/\s+/g, '') || '5h40';
-}
-
-function extractHighlight(notes='', destination='') {
-  const txt = String(notes || '');
-  const lac = txt.match(/lac\s+[A-Za-zÀ-ÿ'’\-]+(?:\s+[A-Za-zÀ-ÿ'’\-]+)?/i)?.[0];
-  const suisse = txt.match(/Mont\-Blanc|Suisse|Léman/i)?.[0];
-  return lac || suisse || destination || 'Moment fort';
-}
-
-function tripSummaryCards(t) {
-  const distance = extractDistance(t?.notes || '');
-  const duration = extractDuration(t?.notes || '');
-  const highlight = extractHighlight(t?.notes || '', t?.destination || 'Escapade');
-
-  return `
-    <div class="trip-compact-grid">
-      <div class="trip-compact-info trip-compact-info-travel">
-        <div class="trip-compact-info-head">
-          <span class="trip-compact-info-icon car">${icon('fuel')}</span>
-          <b>Trajet</b>
-        </div>
-        <div class="trip-compact-split"></div>
-        <div class="trip-compact-kpi-row">
-          <span class="trip-compact-mini-icon">${icon('clock')}</span>
-          <div><strong>${esc(distance)}</strong><small>de trajet</small></div>
-        </div>
-        <div class="trip-compact-split"></div>
-        <div class="trip-compact-kpi-row">
-          <span class="trip-compact-mini-icon clock">${icon('clock')}</span>
-          <div><strong>${esc(duration)}</strong><small>de route</small></div>
-        </div>
-      </div>
-
-      <div class="trip-compact-info">
-        <div class="trip-compact-info-head">
-          <span class="trip-compact-info-icon mountain">${icon('mountain')}</span>
-          <b>Ambiance</b>
-        </div>
-        <div class="trip-compact-info-body">
-          <strong>Nature & montagne</strong>
-          <small>Randonnées & paysages</small>
-        </div>
-      </div>
-
-      <div class="trip-compact-info">
-        <div class="trip-compact-info-head">
-          <span class="trip-compact-info-icon water">≈</span>
-          <b>À retenir</b>
-        </div>
-        <div class="trip-compact-info-body">
-          <strong>${esc(highlight)}</strong>
-          <small>Escapade</small>
-        </div>
-      </div>
-    </div>`;
 }
 
 export function Trips(nav) {
@@ -129,62 +65,80 @@ export function Trips(nav) {
   function render() {
     const trips = store.list('trips');
     const active = store.activeTrip();
-    const journal = store.list('journal') || [];    const card = (t)=>{
-      const owner = tripOwner(t);
-      const ownerName = owner?.name || 'Non attribué';
-      const ownerInitial = (ownerName || '?').slice(0, 1).toUpperCase();
-      const ownerColor = owner?.color || '#67a7dc';
-      const ownerText = owner ? `${esc(ownerName)} a choisi ce voyage` : 'Voyage non attribué';
-      const ownerMessage = familyTripMessage(t);
+    const journal = store.list('journal') || [];
+
+    const shortText = (value = '', max = 120) => {
+      const txt = String(value || '').replace(/\s+/g, ' ').trim();
+      return txt.length > max ? `${txt.slice(0, max - 1).trim()}…` : txt;
+    };
+
+    const stayLength = (t) => {
+      const a = Date.parse(t.start || '');
+      const b = Date.parse(t.end || '');
+      if (!Number.isFinite(a) || !Number.isFinite(b) || b < a) return 'Dates à préciser';
+      const days = Math.max(1, Math.round((b - a) / 86400000) + 1);
+      const nights = Math.max(0, days - 1);
+      return nights ? `${days} jours · ${nights} nuit${nights > 1 ? 's' : ''}` : `${days} jour`;
+    };
+
+    const card = (t)=>{
+      const isActive = t.id === active?.id;
+      const statusLabel = STATUS[t.status]?.l || t.status || 'Statut';
+      const statusClass = STATUS[t.status]?.c || '';
+      const note = shortText(t.notes || '', 115);
+      const budget = (+t.budget || 0) > 0 ? `${(+t.budget).toLocaleString('fr-FR')} €` : 'Budget à compléter';
+      const ownerLine = ownerMiniLineHTML(t).replace(/^ · 👤\s*/, '') || 'Non attribué';
 
       return `
-      <div class="trip-summary-compact-card ${t.id===active?.id?'is-active':''}">
-        <div class="trip-summary-compact-top">
-          <div class="trip-summary-compact-photo">
+      <div class="card hoverable trip-card-compact ${isActive ? 'trip-card-compact--active' : ''}" style="${isActive?'border-color:var(--sage-deep);border-width:2px':''}">
+        <div class="trip-card-compact-head">
+          <div class="trip-card-compact-media">
             ${t.photos&&t.photos[0]
               ? `<img data-media="${t.photos[0].id}" alt="">`
-              : `<div class="trip-summary-compact-fallback"><span>${esc(t.cover||'🧭')}</span></div>`}
+              : `<span class="trip-card-compact-emoji">${t.cover||'🧭'}</span>`}
           </div>
-
-          <div class="trip-summary-compact-main">
-            <div class="trip-summary-compact-header">
-              <div class="trip-summary-compact-title-wrap">
-                <h3>${esc(t.title)}</h3>
-                <div class="trip-summary-compact-meta">
-                  <span>${icon('pin')} ${esc(t.destination||'—')}</span>
-                  <span>${icon('calendar')} ${fmtDate(t.start)} → ${fmtDate(t.end)}</span>
-                  <span>${icon('users')} ${(owner && esc(ownerName)) || 'Non attribué'}</span>
-                </div>
-              </div>
-              <span class="trip-summary-compact-status ${STATUS[t.status]?.c||''}">${STATUS[t.status]?.l||t.status}</span>
+          <div class="trip-card-compact-main">
+            <div class="trip-card-compact-title-row">
+              <h4 class="trip-card-compact-title">${esc(t.title)}</h4>
+              <span class="tag ${statusClass}">${esc(statusLabel)}</span>
             </div>
-
-            <div class="trip-summary-compact-banner">
-              <span class="trip-summary-compact-avatar" style="background:${esc(ownerColor)}">${esc(ownerInitial)}</span>
-              <span class="trip-summary-compact-banner-text">
-                <b>${ownerText}</b>
-                <small>${esc(ownerMessage)}</small>
-              </span>
-              <span class="trip-summary-compact-banner-art" aria-hidden="true">${icon('suitcase')}</span>
+            <div class="trip-card-compact-meta">
+              <span>${icon('pin')} ${esc(t.destination || 'Destination à préciser')}</span>
+              <span>${icon('calendar')} ${fmtDate(t.start)} → ${fmtDate(t.end)}</span>
+              <span>${icon('users')} ${ownerLine}</span>
             </div>
+            <div class="trip-card-compact-owner">${ownerBadgeHTML(t)}</div>
           </div>
         </div>
 
-        ${tripSummaryCards(t)}
-
-        <div class="trip-summary-brief">
-          <div class="trip-summary-brief-head">
-            <span class="trip-summary-brief-icon">${icon('folder')}</span>
-            <b>Le séjour en bref</b>
+        <div class="trip-card-compact-grid">
+          <div class="trip-card-compact-box">
+            <div class="trip-card-compact-box-title">${icon('flag')} Trajet</div>
+            <b>${esc(t.destination || 'Destination')}</b>
+            <small>${esc(stayLength(t))}</small>
           </div>
-          <p>${esc(t.notes||'')}</p>
+          <div class="trip-card-compact-box">
+            <div class="trip-card-compact-box-title">${icon('mountain')} Ambiance</div>
+            <b>${esc(note || 'À compléter')}</b>
+            <small>${esc(statusLabel)}</small>
+          </div>
+          <div class="trip-card-compact-box">
+            <div class="trip-card-compact-box-title">${icon('bulb')} À retenir</div>
+            <b>${esc(budget)}</b>
+            <small>${isActive ? 'Voyage actif' : 'Voyage disponible'}</small>
+          </div>
         </div>
 
-        <div class="trip-summary-compact-actions">
-          ${t.id===active?.id?'<span class="trip-summary-active"><span></span> Actif</span>':`<button class="btn sm ghost setact" data-id="${t.id}">Définir actif</button>`}
-          <div class="trip-summary-actions-spacer"></div>
-          <button class="trip-summary-action-btn edit" data-id="${t.id}">${icon('edit')}<span>Modifier</span></button>
-          <button class="trip-summary-action-btn danger del" data-id="${t.id}">${icon('trash')}<span>Supprimer</span></button>
+        ${note ? `<div class="trip-card-compact-brief">
+          <b>${icon('folder')} Le séjour en bref</b>
+          <span>${esc(note)}</span>
+        </div>` : ''}
+
+        <div class="trip-card-compact-actions">
+          ${isActive?'<span class="tag sage dot">Voyage actif</span>':`<button class="btn sm ghost setact" data-id="${t.id}">Définir actif</button>`}
+          <div style="flex:1"></div>
+          <button class="btn sm ghost edit" data-id="${t.id}">${icon('edit')} Modifier</button>
+          <button class="btn sm ghost del" data-id="${t.id}">${icon('trash')} Supprimer</button>
         </div>
       </div>`;
     };
