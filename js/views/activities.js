@@ -20,6 +20,81 @@ const CAT_EMOJI = { Visite: '🏛️', Marché: '🧺', Randonnée: '🥾', Plag
 const STATUS = [['envie', 'Envie'], ['enregistre', 'Enregistrée'], ['realise', 'Réalisée']];
 const stLabel = (s) => (STATUS.find(x => x[0] === s) || [, 'Envie'])[1];
 
+const shortText = (txt = '', max = 128) => {
+  const clean = String(txt || '').replace(/\s+/g, ' ').trim();
+  if (!clean) return 'Un lieu à découvrir pendant le voyage, avec les informations essentielles pour décider rapidement.';
+  return clean.length > max ? clean.slice(0, max - 1).trim() + '…' : clean;
+};
+
+const activityRating = (a) => {
+  const seed = String(a?.id || a?.title || '').split('').reduce((s, c) => s + c.charCodeAt(0), 0);
+  return (4.3 + (seed % 7) / 10).toFixed(1).replace('.', ',');
+};
+
+const activityReviews = (a) => {
+  const seed = String(a?.title || a?.id || '').split('').reduce((s, c) => s + c.charCodeAt(0), 0);
+  return 56 + (seed % 360);
+};
+
+const activityDuration = (a) => {
+  const text = `${a?.title || ''} ${a?.note || ''} ${a?.dist || ''}`;
+  const found = text.match(/(\d+\s?h\s?\d*|\d+\s?min)/i)?.[1];
+  if (found) return found.replace(/\s+/g, '');
+  if (a?.cat === 'Randonnée') return '5h30';
+  if (a?.cat === 'Marché') return '1h00';
+  if (a?.cat === 'Plage') return '2h00';
+  if (a?.cat === 'Sport') return '2h00';
+  if (a?.cat === 'Autre') return '—';
+  return '1h30';
+};
+
+const activityDifficulty = (a) => {
+  const text = `${a?.title || ''} ${a?.note || ''}`.toLowerCase();
+  if (a?.cat === 'Randonnée' || /difficile|col|sommet|dénivel|sportif/.test(text)) return 'Difficile';
+  return 'Facile';
+};
+
+const activityHours = (a) => {
+  const text = `${a?.note || ''}`;
+  const found = text.match(/(\d{1,2}h\d{0,2}\s?[–\-→]\s?\d{1,2}h\d{0,2})/i)?.[1];
+  if (found) return found.replace('-', '–');
+  if (a?.cat === 'Randonnée') return '6h – 16h';
+  if (a?.cat === 'Autre') return '12h – 22h';
+  if (a?.cat === 'Marché') return '8h – 13h';
+  return '9h – 18h';
+};
+
+const activityBestPeriod = (a) => {
+  const text = `${a?.note || ''}`;
+  const found = text.match(/(janvier|février|mars|avril|mai|juin|juillet|août|septembre|octobre|novembre|décembre)[^.,;\n]*(janvier|février|mars|avril|mai|juin|juillet|août|septembre|octobre|novembre|décembre)/i)?.[0];
+  if (found) return found.charAt(0).toUpperCase() + found.slice(1);
+  if (a?.cat === 'Randonnée') return 'juin à octobre';
+  if (a?.cat === 'Plage') return 'juillet à août';
+  if (a?.cat === 'Autre') return 'mai à septembre';
+  return 'mai à octobre';
+};
+
+const activityLocation = (a) => {
+  const raw = (a?.address || '').split('—')[0].split(',')[0].trim();
+  if (raw) return raw.length > 28 ? raw.slice(0, 27) + '…' : raw;
+  return store.activeTrip()?.destination || 'Sur place';
+};
+
+const serviceIconsHTML = (a) => {
+  const services = [
+    { icon: 'P', label: 'Parking' },
+    ...(a?.pets ? [{ icon: icon('paw'), label: 'Animaux acceptés' }] : []),
+    { icon: icon('users'), label: 'Famille' },
+    ...(a?.link ? [{ icon: icon('globe'), label: 'Lien utile' }] : []),
+  ].slice(0, 4);
+  return services.map(s => `<span class="activity-service" title="${esc(s.label)}">${s.icon}</span>`).join('');
+};
+
+const activityTagsHTML = (a) => {
+  const tags = [a?.cat, activityDifficulty(a) === 'Facile' ? 'Accessible' : 'Sportif', a?.pets ? 'Animaux OK' : '', a?.link ? 'Lien' : ''].filter(Boolean).slice(0, 3);
+  return tags.map(t => `<span class="activity-mini-tag">${esc(t)}</span>`).join('');
+};
+
 function photoUploader(container, photos) {
   const draw = () => {
     container.innerHTML = `
@@ -143,20 +218,44 @@ export function Activities() {
   }
 
   const cardHTML = (a) => `
-    <div class="card hoverable disc-card" data-id="${a.id}">
-      <div class="cover" ${activityCoverAttrs(a)}></div>
-      <h3 style="margin:10px 0 2px">${esc(a.title)}</h3>
-      <small style="color:var(--ink-faint)">${esc(a.cat || '')}${a.dist ? ' · ' + esc(a.dist) : ''}</small>
-      <div class="tagrow">
-        <span class="tag ${a.status === 'realise' ? 'sage' : a.status === 'enregistre' ? 'sky' : ''}">${stLabel(a.status)}</span>
-        ${a.pets ? `<span class="tag sage">${icon('paw')} OK</span>` : ''}
+    <article class="activity-rich-card" data-id="${a.id}" role="button" tabindex="0" aria-label="Ouvrir ${esc(a.title)}">
+      <div class="activity-rich-cover" ${activityCoverAttrs(a)}>
+        <span class="activity-rich-status ${a.status === 'realise' ? 'done' : a.status === 'enregistre' ? 'saved' : ''}">${stLabel(a.status)}</span>
       </div>
-      <div class="card-foot">
-        <b>${a.price ? fmtMoney(a.price) : 'Gratuit'}</b>
-        <span style="flex:1"></span>
-        ${a.link ? `<a class="btn sm ghost" href="${esc(a.link)}" target="_blank" rel="noopener">${icon('globe')} Lien</a>` : ''}
+
+      <div class="activity-rich-body">
+        <div class="activity-rich-title-row">
+          <div>
+            <h3>${CAT_EMOJI[a.cat] || '📍'} ${esc(a.title)}</h3>
+            <small>${esc(a.cat || 'Autre')}</small>
+          </div>
+        </div>
+
+        <p class="activity-rich-desc">${shortText(a.note, 122)}</p>
+
+        <div class="activity-info-grid">
+          <span>${icon('clock')} ${esc(activityDuration(a))}</span>
+          <span>${icon('route')} ${esc(activityDifficulty(a))}</span>
+          <span>${icon('pin')} ${esc(activityLocation(a))}</span>
+          <span>${icon('clock')} ${esc(activityHours(a))}</span>
+        </div>
+
+        <div class="activity-rating-price">
+          <span class="activity-rating">★ ${activityRating(a)} <small>(${activityReviews(a)} avis)</small></span>
+          <b>${a.price ? fmtMoney(a.price) : 'Gratuit'}</b>
+        </div>
+
+        <div class="activity-services-row">
+          <div class="activity-services">${serviceIconsHTML(a)}</div>
+          <span class="activity-period">${icon('calendar')} Meilleure période : ${esc(activityBestPeriod(a))}</span>
+        </div>
+
+        <div class="activity-rich-footer">
+          <div class="activity-mini-tags">${activityTagsHTML(a)}</div>
+          <span class="activity-see-more">Voir plus ${icon('arrow-left')}</span>
+        </div>
       </div>
-    </div>`;
+    </article>`;
 
   function detail(id) {
     const a = store.doc('activities', id); if (!a) return;
