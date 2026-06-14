@@ -23,6 +23,21 @@ function photoUploader(container, photos) {
   draw();
 }
 
+
+function tripMetricCards(t) {
+  const notes = String(t?.notes || '');
+  const distance = notes.match(/(\d+[\s\d]*\s?km)/i)?.[1]?.replace(/\s+/g, ' ') || 'Trajet';
+  const duration = notes.match(/(\d+\s?h\s?\d*)/i)?.[1]?.replace(/\s+/g, '') || 'Durée';
+  const destination = t?.destination || 'Destination';
+  return `
+    <div class="trip-premium-metrics">
+      <div class="trip-premium-metric"><span class="metric-icon metric-car">🚗</span><b>${esc(distance)}</b><small>de trajet</small></div>
+      <div class="trip-premium-metric"><span class="metric-icon metric-clock">${icon('clock')}</span><b>${esc(duration)}</b><small>de route</small></div>
+      <div class="trip-premium-metric wide"><span class="metric-icon metric-mountain">${icon('mountain')}</span><b>Nature & montagne</b><small>Randonnées & paysages</small></div>
+      <div class="trip-premium-metric"><span class="metric-icon metric-water">≈</span><b>${esc(destination)}</b><small>Escapade</small></div>
+    </div>`;
+}
+
 export function Trips(nav) {
   const el = document.createElement('div');
 
@@ -68,23 +83,39 @@ export function Trips(nav) {
     const journal = store.list('journal') || [];
 
     const card = (t)=>`
-      <div class="card hoverable" style="${t.id===active?.id?'border-color:var(--sage-deep);border-width:2px':''}">
-        <div style="display:flex;align-items:center;gap:12px">
+      <div class="trip-premium-card ${t.id===active?.id?'is-active':''}">
+        <div class="trip-premium-cover">
           ${t.photos&&t.photos[0]
-            ? `<img class="trip-thumb" data-media="${t.photos[0].id}" alt="">`
-            : `<span class="trip-thumb emoji">${t.cover||'🧭'}</span>`}
-          <div style="flex:1;min-width:0"><b style="font-size:1.05rem">${esc(t.title)}</b><br>
-            <small style="color:var(--ink-faint)">${icon('pin')} ${esc(t.destination)} · ${fmtDate(t.start)} → ${fmtDate(t.end)}${ownerMiniLineHTML(t)}</small>
-            ${ownerBadgeHTML(t)}
-          </div>
-          <span class="tag ${STATUS[t.status]?.c||''}">${STATUS[t.status]?.l||t.status}</span>
+            ? `<img data-media="${t.photos[0].id}" alt="">`
+            : `<div class="trip-premium-cover-fallback"><span>${esc(t.cover||'🧭')}</span></div>`}
+          <span class="trip-premium-status ${STATUS[t.status]?.c||''}">${STATUS[t.status]?.l||t.status}</span>
         </div>
-        <p style="color:var(--ink-soft);font-size:.9rem;margin:10px 0">${esc(t.notes||'')}</p>
-        <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
-          ${t.id===active?.id?'<span class="tag sage dot">Voyage actif</span>':`<button class="btn sm ghost setact" data-id="${t.id}">Définir actif</button>`}
-          <div style="flex:1"></div>
-          <button class="btn sm ghost edit" data-id="${t.id}">${icon('edit')}</button>
-          <button class="btn sm ghost del" data-id="${t.id}">${icon('trash')}</button>
+
+        <div class="trip-premium-body">
+          <div class="trip-premium-head">
+            <div class="trip-premium-title-block">
+              <h3>${esc(t.title)}</h3>
+              <div class="trip-premium-meta">
+                <span>${icon('pin')} ${esc(t.destination||'—')}</span>
+                <span>${icon('calendar')} ${fmtDate(t.start)} → ${fmtDate(t.end)}</span>
+                <span>${icon('users')} ${ownerMiniLineHTML(t).replace(' · 👤 ', '') || 'Non attribué'}</span>
+              </div>
+            </div>
+            <div class="trip-owner-card">${ownerBadgeHTML(t)}</div>
+          </div>
+
+          ${tripMetricCards(t)}
+
+          <p class="trip-premium-notes">${esc(t.notes||'')}</p>
+          <div class="trip-premium-divider"></div>
+          <button class="trip-premium-less" type="button">Afficher moins <span>⌃</span></button>
+
+          <div class="trip-premium-actions">
+            ${t.id===active?.id?'<span class="trip-premium-active"><span></span> Voyage actif</span>':`<button class="btn sm ghost setact" data-id="${t.id}">Définir actif</button>`}
+            <div class="trip-premium-spacer"></div>
+            <button class="trip-premium-action-btn edit" data-id="${t.id}">${icon('edit')}<span>Modifier</span></button>
+            <button class="trip-premium-action-btn danger del" data-id="${t.id}">${icon('trash')}<span>Supprimer</span></button>
+          </div>
         </div>
       </div>`;
 
